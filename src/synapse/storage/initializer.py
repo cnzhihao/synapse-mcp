@@ -13,7 +13,7 @@ from typing import Dict, List, Optional, Tuple
 import sys
 import os
 
-from .paths import StoragePaths
+from synapse.storage.paths import StoragePaths
 
 
 class StorageInitializer:

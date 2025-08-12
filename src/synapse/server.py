@@ -21,10 +21,10 @@ import sys
 
 from mcp.server.fastmcp import FastMCP, Context
 
-from .models import ConversationRecord, Solution
-from .storage.paths import StoragePaths
-from .storage.initializer import StorageInitializer, initialize_synapse_storage
-from .utils.logging_config import setup_logging
+from synapse.models import ConversationRecord, Solution
+from synapse.storage.paths import StoragePaths
+from synapse.storage.initializer import StorageInitializer, initialize_synapse_storage
+from synapse.utils.logging_config import setup_logging
 
 # 设置日志
 logger = logging.getLogger(__name__)
@@ -82,7 +82,7 @@ async def app_lifespan(server: FastMCP):
     try:
         # 初始化存储系统
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, initialize_storage)
+        await loop.run_in_executor(None, initialize_synapse_storage)
         
         # 连接数据库
         db = await Database.connect()

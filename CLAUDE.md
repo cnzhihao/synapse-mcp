@@ -15,6 +15,40 @@ When working on this project, always provide **extremely detailed explanations**
 3. **How components interact** - Describe data flow and integration points
 4. **Implementation significance** - Explain what each function/class contributes to the overall system
 
+## Code Standards and Requirements
+
+### Import Statement Requirements
+
+**CRITICAL**: All imports in this project must use **absolute imports only**. Never use relative imports.
+
+**✅ Correct (Absolute Imports)**:
+```python
+from synapse.models import ConversationRecord, Solution
+from synapse.storage.paths import StoragePaths
+from synapse.storage.initializer import StorageInitializer
+from synapse.utils.logging_config import setup_logging
+```
+
+**❌ Incorrect (Relative Imports)**:
+```python
+from .models import ConversationRecord, Solution
+from .storage.paths import StoragePaths
+from ..utils.logging_config import setup_logging
+```
+
+**Why Absolute Imports Are Required**:
+1. **MCP Tool Compatibility**: `mcp dev` and other MCP development tools require absolute imports
+2. **Deployment Flexibility**: Works seamlessly with npm/npx distribution, Docker containers, and all deployment scenarios
+3. **IDE Support**: Better autocomplete, static analysis, and refactoring tool support
+4. **Debugging**: Clearer error messages with full module paths
+5. **Maintainability**: Easier to understand and modify code structure
+
+**When Making Changes**:
+- Always review existing files for relative imports and convert them to absolute imports
+- Update all `__init__.py` files to use absolute imports
+- Ensure all new code follows this standard
+- Test with `mcp dev` to verify import compatibility
+
 ## Architecture Overview
 
 ### MCP Tools Structure

@@ -8,6 +8,6 @@ Synapse MCP 数据模型模块
 这些模型遵循 MCP 协议要求，使用 Pydantic 进行数据验证和序列化。
 """
 
-from .conversation import ConversationRecord, Solution
+from synapse.models.conversation import ConversationRecord, Solution
 
 __all__ = ["ConversationRecord", "Solution"]

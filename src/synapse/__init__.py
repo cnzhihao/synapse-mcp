@@ -20,6 +20,6 @@ __author__ = "Your Name"
 __email__ = "your.email@example.com"
 
 # 导出主要组件
-from .server import main
+from synapse.server import main
 
 __all__ = ["main", "__version__", "__author__", "__email__"]
