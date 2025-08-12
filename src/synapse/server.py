@@ -24,7 +24,12 @@ from mcp.server.fastmcp import FastMCP, Context
 from synapse.models import ConversationRecord, Solution
 from synapse.storage.paths import StoragePaths
 from synapse.storage.initializer import StorageInitializer, initialize_synapse_storage
+from synapse.storage.file_manager import FileManager
 from synapse.utils.logging_config import setup_logging
+from synapse.tools.save_conversation import SaveConversationTool
+from synapse.tools.extract_solutions import ExtractSolutionsTool
+from synapse.tools.search_knowledge import SearchKnowledgeTool
+from synapse.tools.inject_context import InjectContextTool
 
 # 设置日志
 logger = logging.getLogger(__name__)
@@ -68,6 +73,11 @@ class AppContext:
     """应用上下文，包含数据库连接等资源"""
     db: Database
     storage_paths: StoragePaths
+    file_manager: FileManager
+    save_conversation_tool: SaveConversationTool
+    extract_solutions_tool: ExtractSolutionsTool
+    search_knowledge_tool: SearchKnowledgeTool
+    inject_context_tool: InjectContextTool
 
 @asynccontextmanager
 async def app_lifespan(server: FastMCP):
@@ -90,8 +100,31 @@ async def app_lifespan(server: FastMCP):
         # 创建存储路径管理器
         storage_paths = StoragePaths()
         
+        # 创建文件管理器
+        file_manager = FileManager(storage_paths)
+        
+        # 创建保存对话工具
+        save_conversation_tool = SaveConversationTool(storage_paths)
+        
+        # 创建解决方案提取工具
+        extract_solutions_tool = ExtractSolutionsTool(storage_paths)
+        
+        # 创建搜索知识工具
+        search_knowledge_tool = SearchKnowledgeTool(storage_paths, file_manager)
+        
+        # 创建上下文注入工具
+        inject_context_tool = InjectContextTool(storage_paths, file_manager, search_knowledge_tool)
+        
         # 创建应用上下文
-        app_context = AppContext(db=db, storage_paths=storage_paths)
+        app_context = AppContext(
+            db=db, 
+            storage_paths=storage_paths,
+            file_manager=file_manager,
+            save_conversation_tool=save_conversation_tool,
+            extract_solutions_tool=extract_solutions_tool,
+            search_knowledge_tool=search_knowledge_tool,
+            inject_context_tool=inject_context_tool
+        )
         
         logger.info("Synapse MCP 服务器启动成功")
         
@@ -117,70 +150,136 @@ async def save_conversation(
     title: str,
     content: str,
     tags: list[str] = None,
-    category: str = "general", 
-    importance: int = 3,
+    category: str = None, 
+    importance: int = None,
+    check_duplicates: bool = True,
     ctx: Context = None
 ) -> dict:
     """
-    保存AI对话记录到知识库中，支持自动标签提取和分类
+    保存AI对话记录到知识库中，支持智能标签提取、摘要生成和重复检测
+    
+    这个工具提供完整的对话保存功能：
+    - 自动清理和格式化对话内容
+    - 智能提取编程语言、技术栈等标签
+    - 基于内容生成有意义的摘要
+    - 自动评估对话重要性等级
+    - 检测并提醒重复对话
+    - 更新搜索索引以支持快速查询
     
     Args:
-        title: 对话主题标题
-        content: 完整的对话内容
-        tags: 标签列表（可选）
-        category: 对话分类（可选）
-        importance: 重要程度 1-5
+        title: 对话主题标题（必需）
+        content: 完整的对话内容（必需）
+        tags: 用户自定义标签列表（可选，将与自动提取的标签合并）
+        category: 对话分类（可选，如不指定将自动推断）
+        importance: 重要程度 1-5（可选，如不指定将自动评估）
+        check_duplicates: 是否检查重复对话（默认True）
         ctx: MCP上下文对象
         
     Returns:
-        dict: 保存结果信息
+        dict: 详细的保存结果信息，包括：
+            - success: 保存是否成功
+            - conversation: 保存的对话详细信息
+            - duplicates_found: 发现的重复对话数量
+            - duplicate_ids: 重复对话的ID列表
+            - storage_path: 文件存储路径
     """
     try:
         if ctx:
             await ctx.info(f"开始保存对话: {title}")
         
-        # 参数验证
-        if not title or not content:
-            raise ValueError("标题和内容不能为空")
+        # 基础参数验证
+        if not title or not title.strip():
+            raise ValueError("对话标题不能为空")
         
-        if importance < 1 or importance > 5:
-            raise ValueError("重要性必须在1-5之间")
+        if not content or not content.strip():
+            raise ValueError("对话内容不能为空")
         
-        # 创建对话记录
-        conversation = ConversationRecord(
-            title=title,
-            content=content,
-            tags=tags or [],
-            category=category,
-            importance=importance
-        )
+        if importance is not None and (importance < 1 or importance > 5):
+            raise ValueError("重要性等级必须在1-5之间")
         
-        # 获取数据库连接
+        # 获取保存对话工具实例
+        save_tool = None
         if ctx and hasattr(ctx.request_context, 'lifespan_context'):
-            db = ctx.request_context.lifespan_context.db
-            conversation_id = await db.save_conversation(conversation)
-        else:
-            conversation_id = conversation.id
+            save_tool = ctx.request_context.lifespan_context.save_conversation_tool
+        
+        if not save_tool:
+            # 如果无法获取工具实例，创建一个临时实例
+            from synapse.storage.paths import StoragePaths
+            storage_paths = StoragePaths()
+            save_tool = SaveConversationTool(storage_paths)
+            logger.warning("使用临时SaveConversationTool实例")
         
         if ctx:
-            await ctx.info(f"对话记录保存成功: {conversation_id}")
+            await ctx.info("正在处理对话内容...")
         
-        # 返回结果
+        # 使用SaveConversationTool进行保存
+        result = save_tool.save_conversation(
+            title=title.strip(),
+            content=content.strip(),
+            user_tags=tags,
+            user_category=category,
+            user_importance=importance,
+            check_duplicates=check_duplicates
+        )
+        
+        # 检查保存结果
+        if not result.get("success", False):
+            error_msg = result.get("error", "未知错误")
+            raise RuntimeError(f"保存失败: {error_msg}")
+        
+        conversation_info = result.get("conversation", {})
+        duplicates_count = result.get("duplicates_found", 0)
+        
+        if ctx:
+            if duplicates_count > 0:
+                await ctx.info(f"检测到 {duplicates_count} 个相似对话")
+            
+            await ctx.info(f"对话保存成功: {conversation_info.get('id', 'Unknown')}")
+            await ctx.info(f"自动提取了 {conversation_info.get('auto_tags_count', 0)} 个标签")
+        
+        # 构建返回结果（保持与原API兼容，同时提供更多信息）
         return {
-            "id": conversation_id,
-            "title": conversation.title,
-            "stored_at": conversation.created_at.isoformat(),
-            "tags": conversation.tags,
-            "category": conversation.category,
-            "importance": conversation.importance,
-            "searchable": True
+            # 基本信息（保持兼容）
+            "id": conversation_info.get("id"),
+            "title": conversation_info.get("title"),
+            "stored_at": conversation_info.get("created_at"),
+            "tags": conversation_info.get("tags", []),
+            "category": conversation_info.get("category", "general"),
+            "importance": conversation_info.get("importance", 3),
+            "searchable": True,
+            
+            # 扩展信息
+            "summary": conversation_info.get("summary", ""),
+            "auto_generated": {
+                "tags_count": conversation_info.get("auto_tags_count", 0),
+                "user_tags_count": conversation_info.get("user_tags_count", 0),
+                "code_blocks_found": conversation_info.get("code_blocks_count", 0)
+            },
+            "duplicate_detection": {
+                "checked": check_duplicates,
+                "duplicates_found": duplicates_count,
+                "duplicate_ids": result.get("duplicate_ids", [])
+            },
+            "storage_info": {
+                "file_path": result.get("storage_path"),
+                "indexed": True  # 索引已更新
+            }
         }
         
     except Exception as e:
+        error_msg = str(e)
         if ctx:
-            await ctx.error(f"保存对话失败: {str(e)}")
-        logger.error(f"保存对话失败: {str(e)}", exc_info=True)
-        raise ValueError(f"保存对话失败: {str(e)}")
+            await ctx.error(f"保存对话失败: {error_msg}")
+        
+        logger.error(f"保存对话失败 - 标题: {title[:50]}..., 错误: {error_msg}", exc_info=True)
+        
+        # 返回错误信息而不是抛出异常，让调用方能够处理
+        return {
+            "success": False,
+            "error": error_msg,
+            "error_type": type(e).__name__,
+            "searchable": False
+        }
 
 @mcp.tool()
 async def search_knowledge(
@@ -188,224 +287,431 @@ async def search_knowledge(
     category: str = None,
     tags: list[str] = None,
     time_range: str = "all",
+    importance_min: int = None,
     limit: int = 10,
+    include_content: bool = False,
     ctx: Context = None
 ) -> dict:
     """
     在知识库中搜索相关的对话记录和解决方案
     
+    使用智能三层搜索策略提供高质量的搜索结果：
+    1. 精确匹配层 - 基于索引的关键词精确匹配
+    2. 标签过滤层 - 基于技术标签的分类过滤  
+    3. 内容匹配层 - 基于内容的模糊匹配和相关性评分
+    
+    性能目标：响应时间 < 200ms，搜索准确率 > 80%
+    
     Args:
-        query: 搜索查询关键词
+        query: 搜索查询关键词（必需）
         category: 内容分类过滤（可选）
-        tags: 标签过滤（可选）
+        tags: 标签过滤列表（可选）
         time_range: 时间范围过滤 ("week", "month", "all")
-        limit: 返回结果数量限制
+        importance_min: 最小重要性等级 (1-5)
+        limit: 返回结果数量限制 (1-50)
+        include_content: 是否在结果中包含完整对话内容
         ctx: MCP上下文对象
         
     Returns:
-        dict: 搜索结果
+        dict: 智能搜索结果，包含详细的相关性分数和统计信息
     """
     try:
         if ctx:
-            await ctx.info(f"开始搜索: '{query}'")
+            await ctx.info(f"开始智能搜索: '{query}'")
         
-        # 参数验证
-        if not query or not query.strip():
-            raise ValueError("搜索查询不能为空")
-        
-        if limit < 1 or limit > 50:
-            raise ValueError("结果数量限制必须在1-50之间")
-        
-        if time_range not in ["week", "month", "all"]:
-            raise ValueError("时间范围必须是 'week', 'month' 或 'all'")
-        
-        # 获取数据库连接并搜索
+        # 获取搜索知识工具实例
+        search_tool = None
         if ctx and hasattr(ctx.request_context, 'lifespan_context'):
-            db = ctx.request_context.lifespan_context.db
-            results = await db.search_conversations(query, limit)
-        else:
-            # 模拟搜索结果
-            results = [
-                {
-                    "id": "conv_20240115_001",
-                    "title": f"关于'{query}'的解决方案",
-                    "snippet": f"这是一个关于{query}的详细解释和代码示例...",
-                    "match_score": 0.95,
-                    "created_at": "2024-01-15T10:30:00Z",
-                    "tags": [query.lower(), "programming"],
-                    "type": "conversation"
-                }
-            ]
+            search_tool = ctx.request_context.lifespan_context.search_knowledge_tool
+        
+        if not search_tool:
+            # 如果无法获取工具实例，创建一个临时实例
+            from synapse.storage.paths import StoragePaths
+            from synapse.storage.file_manager import FileManager
+            storage_paths = StoragePaths()
+            file_manager = FileManager(storage_paths)
+            search_tool = SearchKnowledgeTool(storage_paths, file_manager)
+            logger.warning("使用临时SearchKnowledgeTool实例")
         
         if ctx:
-            await ctx.info(f"搜索完成，找到 {len(results)} 个结果")
+            await ctx.info("执行三层搜索策略...")
         
+        # 使用SearchKnowledgeTool进行智能搜索
+        result = search_tool.search_knowledge(
+            query=query.strip(),
+            category=category,
+            tags=tags,
+            time_range=time_range,
+            importance_min=importance_min,
+            limit=limit,
+            include_content=include_content
+        )
+        
+        # 检查搜索结果
+        if not result:
+            raise RuntimeError("搜索工具返回空结果")
+        
+        search_time = result.get("search_time_ms", 0)
+        results_count = len(result.get("results", []))
+        
+        if ctx:
+            await ctx.info(f"搜索完成: 找到 {results_count} 个结果，耗时 {search_time:.2f}ms")
+            
+            # 提供详细的搜索统计信息
+            stats = result.get("statistics", {})
+            if stats:
+                candidates = stats.get("total_candidates", 0)
+                filtered = stats.get("after_filtering", 0)
+                if candidates > 0:
+                    await ctx.info(f"搜索统计: {candidates} 个候选 → {filtered} 个过滤结果")
+                
+                # 性能信息
+                if search_time > 100:
+                    await ctx.info(f"搜索耗时较长: {search_time:.2f}ms (目标<200ms)")
+                elif search_time < 50:
+                    await ctx.info(f"搜索性能良好: {search_time:.2f}ms")
+        
+        # 确保返回格式与原API兼容
         return {
-            "results": results,
-            "total": len(results),
-            "search_time_ms": 45,
+            "results": result.get("results", []),
+            "total": result.get("total", 0),
+            "search_time_ms": round(search_time, 2),
             "query": query,
-            "filters": {
+            "processed_query": result.get("processed_query", query),
+            "filters_applied": result.get("filters_applied", {
                 "category": category,
                 "tags": tags,
-                "time_range": time_range
-            }
+                "time_range": time_range,
+                "importance_min": importance_min,
+                "limit": limit
+            }),
+            "search_statistics": result.get("statistics", {}),
+            "search_engine": "synapse_intelligent_search_v1.0"
         }
         
     except Exception as e:
+        error_msg = str(e)
         if ctx:
-            await ctx.error(f"搜索失败: {str(e)}")
-        logger.error(f"搜索失败: {str(e)}", exc_info=True)
-        raise ValueError(f"搜索失败: {str(e)}")
+            await ctx.error(f"搜索失败: {error_msg}")
+        
+        logger.error(f"搜索失败 - 查询: '{query}', 错误: {error_msg}", exc_info=True)
+        
+        # 返回错误信息而不是抛出异常，让调用方能够处理
+        return {
+            "results": [],
+            "total": 0,
+            "search_time_ms": 0,
+            "query": query,
+            "error": error_msg,
+            "error_type": type(e).__name__,
+            "filters_applied": {
+                "category": category,
+                "tags": tags,
+                "time_range": time_range,
+                "importance_min": importance_min,
+                "limit": limit
+            },
+            "search_engine": "synapse_intelligent_search_v1.0"
+        }
 
 @mcp.tool()
 async def extract_solutions(
     conversation_id: str,
     extract_type: str = "all",
     auto_tag: bool = True,
+    min_reusability_score: float = 0.3,
+    save_solutions: bool = False,
     ctx: Context = None
 ) -> dict:
     """
-    从对话记录中提取可重用的代码片段和解决方案
+    从对话记录中智能提取可重用的代码片段、方法和设计模式
+    
+    这个工具使用先进的文本分析和机器学习技术，从对话记录中自动识别
+    和提取有价值的解决方案。支持多种类型的内容提取和质量评估。
     
     Args:
-        conversation_id: 要提取解决方案的对话ID
+        conversation_id: 要提取解决方案的对话ID（必需）
         extract_type: 提取类型 ("code", "approach", "pattern", "all")
-        auto_tag: 是否自动识别标签
+        auto_tag: 是否自动识别和分类标签（默认True）
+        min_reusability_score: 最小可重用性阈值 0.0-1.0（默认0.3）
+        save_solutions: 是否将提取的解决方案保存到文件系统（默认False）
         ctx: MCP上下文对象
         
     Returns:
-        dict: 提取的解决方案列表
+        dict: 详细的提取结果，包括：
+            - solutions: 提取的解决方案列表
+            - statistics: 提取统计信息
+            - extraction_summary: 人性化的提取摘要
     """
     try:
         if ctx:
-            await ctx.info(f"开始从对话 {conversation_id} 提取解决方案")
+            await ctx.info(f"开始智能提取对话 {conversation_id} 中的解决方案")
         
-        # 参数验证
-        if not conversation_id:
+        # 基础参数验证
+        if not conversation_id or not conversation_id.strip():
             raise ValueError("对话ID不能为空")
         
         if extract_type not in ["code", "approach", "pattern", "all"]:
             raise ValueError("提取类型必须是 'code', 'approach', 'pattern' 或 'all'")
         
-        # 模拟提取解决方案，使用Solution Pydantic模型
-        extracted_solutions = []
+        if not (0.0 <= min_reusability_score <= 1.0):
+            raise ValueError("可重用性阈值必须在0.0-1.0之间")
         
-        # 创建示例解决方案（在实际实现中，这里会从对话内容中智能提取）
-        # 根据extract_type创建相应类型的解决方案
-        if extract_type in ["code", "all"]:
-            code_solution = Solution(
-                type="code",
-                content="// 这里是提取的代码示例\nconst example = () => { return 'Hello World'; }",
-                language="javascript",
-                description="从对话中提取的JavaScript代码示例",
-                reusability_score=0.8
-            )
-            extracted_solutions.append(code_solution)
+        # 获取解决方案提取工具实例
+        extract_tool = None
+        if ctx and hasattr(ctx.request_context, 'lifespan_context'):
+            extract_tool = ctx.request_context.lifespan_context.extract_solutions_tool
         
-        if extract_type in ["approach", "all"]:
-            approach_solution = Solution(
-                type="approach",
-                content="使用分而治之的方法解决复杂问题：1. 分解问题 2. 递归求解 3. 合并结果",
-                description="分而治之算法思想",
-                reusability_score=0.9
-            )
-            extracted_solutions.append(approach_solution)
-        
-        if extract_type in ["pattern", "all"]:
-            pattern_solution = Solution(
-                type="pattern", 
-                content="观察者模式：定义对象间一对多的依赖关系，当对象状态改变时通知所有观察者",
-                description="观察者设计模式应用场景",
-                reusability_score=0.7
-            )
-            extracted_solutions.append(pattern_solution)
-        
-        # 转换为字典格式用于返回
-        solutions_data = [solution.to_dict() for solution in extracted_solutions]
+        if not extract_tool:
+            # 如果无法获取工具实例，创建一个临时实例
+            from synapse.storage.paths import StoragePaths
+            storage_paths = StoragePaths()
+            extract_tool = ExtractSolutionsTool(storage_paths)
+            logger.warning("使用临时ExtractSolutionsTool实例")
         
         if ctx:
-            await ctx.info(f"成功提取了 {len(extracted_solutions)} 个解决方案")
+            await ctx.info(f"开始分析对话内容，提取类型: {extract_type}")
+            if min_reusability_score > 0.3:
+                await ctx.info(f"使用较高的质量阈值: {min_reusability_score}")
         
+        # 使用ExtractSolutionsTool进行智能提取
+        result = extract_tool.extract_solutions(
+            conversation_id=conversation_id.strip(),
+            extract_type=extract_type,
+            auto_tag=auto_tag,
+            min_reusability_score=min_reusability_score,
+            save_solutions=save_solutions
+        )
+        
+        # 检查提取结果
+        if not result.get("success", False):
+            error_msg = result.get("error", "未知错误")
+            raise RuntimeError(f"提取失败: {error_msg}")
+        
+        solutions_count = result.get("total_extracted", 0)
+        statistics = result.get("statistics", {})
+        
+        if ctx:
+            await ctx.info(f"智能提取完成，找到 {solutions_count} 个高质量解决方案")
+            
+            # 提供详细的统计信息
+            if statistics:
+                code_blocks = statistics.get("code_blocks_found", 0)
+                processing_time = statistics.get("processing_time_ms", 0)
+                
+                if code_blocks > 0:
+                    await ctx.info(f"发现 {code_blocks} 个代码块")
+                
+                await ctx.info(f"处理时间: {processing_time:.0f}ms")
+                
+                # 报告质量过滤情况
+                raw_extracted = statistics.get("raw_solutions_extracted", 0)
+                after_quality = statistics.get("after_quality_filter", 0)
+                if raw_extracted > after_quality:
+                    await ctx.info(f"质量过滤：{raw_extracted} → {after_quality} 个解决方案")
+                
+                # 报告保存情况
+                if save_solutions:
+                    saved_count = statistics.get("solutions_saved", 0)
+                    await ctx.info(f"已保存 {saved_count} 个解决方案到文件系统")
+        
+        # 构建返回结果（保持与原API兼容，同时提供更多信息）
         return {
-            "solutions": solutions_data,
+            # 基本兼容信息
+            "solutions": result.get("solutions", []),
             "conversation_id": conversation_id,
             "extract_type": extract_type,
-            "total_extracted": len(extracted_solutions),
-            "auto_tag_enabled": auto_tag
+            "total_extracted": solutions_count,
+            "auto_tag_enabled": auto_tag,
+            
+            # 扩展信息
+            "extraction_summary": result.get("extraction_summary", ""),
+            "statistics": statistics,
+            "quality_settings": {
+                "min_reusability_score": min_reusability_score,
+                "auto_tag": auto_tag,
+                "save_solutions": save_solutions
+            },
+            "success": True
         }
         
     except Exception as e:
+        error_msg = str(e)
         if ctx:
-            await ctx.error(f"解决方案提取失败: {str(e)}")
-        logger.error(f"解决方案提取失败: {str(e)}", exc_info=True)
-        raise ValueError(f"解决方案提取失败: {str(e)}")
+            await ctx.error(f"解决方案提取失败: {error_msg}")
+        
+        logger.error(f"解决方案提取失败 - 对话ID: {conversation_id}, 错误: {error_msg}", exc_info=True)
+        
+        # 返回错误信息而不是抛出异常，让调用方能够处理
+        return {
+            "success": False,
+            "error": error_msg,
+            "error_type": type(e).__name__,
+            "conversation_id": conversation_id,
+            "extract_type": extract_type,
+            "solutions": [],
+            "total_extracted": 0,
+            "auto_tag_enabled": auto_tag
+        }
 
 @mcp.tool()
 async def inject_context(
     current_query: str,
     max_items: int = 3,
     relevance_threshold: float = 0.7,
+    include_solutions: bool = True,
+    include_conversations: bool = True,
     ctx: Context = None
 ) -> dict:
     """
     向当前对话注入相关的历史上下文
     
+    使用智能上下文注入系统，基于多因子相关性算法从历史对话和解决方案中
+    找到最相关的内容，为当前对话提供有价值的背景信息和参考资料。
+    
+    相关性计算基于以下因素：
+    - 文本相似度（40%）：关键词匹配和内容重叠分析
+    - 标签匹配（25%）：基于技术标签的相似度
+    - 时间新鲜度（15%）：较新内容的加权优势  
+    - 重要性等级（15%）：高重要性内容的优先级
+    - 质量因子（5%）：内容质量和完整性评估
+    
     Args:
-        current_query: 当前用户问题
-        max_items: 最大注入项数
-        relevance_threshold: 相关性阈值
+        current_query: 当前用户的查询或问题（必需）
+        max_items: 最大注入的上下文项数量 (1-10，默认3)
+        relevance_threshold: 相关性阈值 (0.0-1.0，默认0.7)
+        include_solutions: 是否包含解决方案内容（默认True）
+        include_conversations: 是否包含对话记录（默认True）
         ctx: MCP上下文对象
         
     Returns:
-        dict: 注入的上下文内容
+        dict: 包含上下文项、注入摘要和详细统计信息的结果
+        {
+            "context_items": [...],
+            "injection_summary": str,
+            "total_items": int,
+            "processing_time_ms": float,
+            "search_statistics": {...}
+        }
     """
     try:
         if ctx:
-            await ctx.info(f"为查询 '{current_query}' 注入上下文")
+            await ctx.info(f"开始智能上下文注入: '{current_query[:50]}'")
         
-        # 参数验证
+        # 基础参数验证
         if not current_query or not current_query.strip():
             raise ValueError("当前查询不能为空")
         
-        if max_items < 1 or max_items > 10:
+        if not isinstance(max_items, int) or max_items < 1 or max_items > 10:
             raise ValueError("最大注入项数必须在1-10之间")
         
-        if relevance_threshold < 0.0 or relevance_threshold > 1.0:
+        if not isinstance(relevance_threshold, (int, float)) or relevance_threshold < 0.0 or relevance_threshold > 1.0:
             raise ValueError("相关性阈值必须在0.0-1.0之间")
         
-        # 模拟相关上下文
-        mock_context_items = [
-            {
-                "title": "类似问题的解决方案",
-                "content": f"关于'{current_query}'的历史解决方案...",
-                "relevance": 0.85,
-                "source_type": "conversation",
-                "source_id": "conv_20240115_001"
-            }
-        ]
+        # 获取上下文注入工具实例
+        inject_tool = None
+        if ctx and hasattr(ctx.request_context, 'lifespan_context'):
+            inject_tool = ctx.request_context.lifespan_context.inject_context_tool
         
-        filtered_items = [
-            item for item in mock_context_items 
-            if item["relevance"] >= relevance_threshold
-        ][:max_items]
+        if not inject_tool:
+            # 如果无法获取工具实例，创建一个临时实例
+            from synapse.storage.paths import StoragePaths
+            from synapse.storage.file_manager import FileManager
+            from synapse.tools.search_knowledge import SearchKnowledgeTool
+            storage_paths = StoragePaths()
+            file_manager = FileManager(storage_paths)
+            search_tool = SearchKnowledgeTool(storage_paths, file_manager)
+            inject_tool = InjectContextTool(storage_paths, file_manager, search_tool)
+            logger.warning("使用临时InjectContextTool实例")
         
         if ctx:
-            await ctx.info(f"成功注入 {len(filtered_items)} 个上下文项")
+            await ctx.info("执行智能相关性分析...")
+            if relevance_threshold > 0.8:
+                await ctx.info(f"使用高质量阈值: {relevance_threshold}")
         
+        # 使用InjectContextTool进行智能上下文注入
+        result = inject_tool.inject_context(
+            current_query=current_query.strip(),
+            max_items=max_items,
+            relevance_threshold=relevance_threshold,
+            include_solutions=include_solutions,
+            include_conversations=include_conversations
+        )
+        
+        # 检查注入结果
+        if not result:
+            raise RuntimeError("上下文注入工具返回空结果")
+        
+        context_items_count = result.get("total_items", 0)
+        processing_time = result.get("processing_time_ms", 0)
+        
+        if ctx:
+            if context_items_count > 0:
+                await ctx.info(f"成功注入 {context_items_count} 个相关上下文项")
+                
+                # 提供详细的注入统计信息
+                stats = result.get("search_statistics", {})
+                if stats:
+                    candidates = stats.get("candidates_found", 0)
+                    above_threshold = stats.get("above_threshold", 0)
+                    if candidates > 0:
+                        await ctx.info(f"注入统计: {candidates} 个候选 → {above_threshold} 个符合阈值 → {context_items_count} 个最终选择")
+                
+                # 性能信息
+                if processing_time > 300:
+                    await ctx.info(f"处理时间: {processing_time:.2f}ms (目标<500ms)")
+                else:
+                    await ctx.info(f"处理高效: {processing_time:.2f}ms")
+            else:
+                await ctx.info(f"未找到符合阈值 {relevance_threshold} 的相关上下文")
+        
+        # 确保返回格式与原API兼容，同时提供扩展信息
         return {
-            "context_items": filtered_items,
-            "injection_summary": f"找到 {len(filtered_items)} 个与'{current_query}'相关的历史解决方案",
-            "total_items": len(filtered_items),
+            # 基本兼容信息
+            "context_items": result.get("context_items", []),
+            "injection_summary": result.get("injection_summary", "上下文注入完成"),
+            "total_items": context_items_count,
             "query": current_query,
-            "relevance_threshold": relevance_threshold
+            "relevance_threshold": relevance_threshold,
+            
+            # 扩展信息
+            "processed_query": result.get("processed_query", current_query),
+            "keywords_extracted": result.get("keywords_extracted", []),
+            "processing_time_ms": round(processing_time, 2),
+            "search_statistics": result.get("search_statistics", {}),
+            "settings": {
+                "max_items": max_items,
+                "include_solutions": include_solutions,
+                "include_conversations": include_conversations
+            },
+            "success": True,
+            "context_engine": "synapse_intelligent_inject_v1.0"
         }
         
     except Exception as e:
+        error_msg = str(e)
         if ctx:
-            await ctx.error(f"上下文注入失败: {str(e)}")
-        logger.error(f"上下文注入失败: {str(e)}", exc_info=True)
-        raise ValueError(f"上下文注入失败: {str(e)}")
+            await ctx.error(f"上下文注入失败: {error_msg}")
+        
+        logger.error(f"上下文注入失败 - 查询: '{current_query}', 错误: {error_msg}", exc_info=True)
+        
+        # 返回错误信息而不是抛出异常，让调用方能够处理
+        return {
+            "context_items": [],
+            "injection_summary": f"注入失败: {error_msg}",
+            "total_items": 0,
+            "query": current_query,
+            "error": error_msg,
+            "error_type": type(e).__name__,
+            "relevance_threshold": relevance_threshold,
+            "settings": {
+                "max_items": max_items,
+                "include_solutions": include_solutions,
+                "include_conversations": include_conversations
+            },
+            "success": False,
+            "context_engine": "synapse_intelligent_inject_v1.0"
+        }
 
 @mcp.tool()
 async def get_storage_info(ctx: Context = None) -> dict:

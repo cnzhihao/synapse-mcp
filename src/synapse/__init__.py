@@ -19,7 +19,10 @@ __version__ = "0.1.0"
 __author__ = "Your Name"
 __email__ = "your.email@example.com"
 
-# 导出主要组件
-from synapse.server import main
-
-__all__ = ["main", "__version__", "__author__", "__email__"]
+# 导出主要组件（可选导入以支持测试）
+try:
+    from synapse.server import main
+    __all__ = ["main", "__version__", "__author__", "__email__"]
+except ImportError:
+    # MCP依赖不可用，只导出基本信息
+    __all__ = ["__version__", "__author__", "__email__"]

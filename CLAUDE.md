@@ -17,6 +17,56 @@ When working on this project, always provide **extremely detailed explanations**
 
 ## Code Standards and Requirements
 
+### Python Execution Requirements
+
+**CRITICAL**: This project uses `uv` for dependency management and execution. Always use `uv run` when running Python code.
+
+**✅ Correct Commands (Primary - Use These)**:
+```bash
+# Run the MCP server
+uv run python3 src/synapse/server.py
+
+# Run tests
+uv run python3 -m pytest tests/
+
+# Install dependencies (uv handles this automatically)
+uv sync
+
+# Run specific scripts
+uv run python3 -c "import sys; print(sys.version)"
+
+# Run with development mode
+uv run mcp dev src/synapse/server.py
+```
+
+**✅ Alternative Commands (Direct python3 if needed)**:
+```bash
+python3 src/synapse/server.py
+python3 -m pytest tests/
+pip3 install mcp
+python3 -c "import sys; print(sys.version)"
+```
+
+**❌ Incorrect Commands**:
+```bash
+python src/synapse/server.py          # Will fail - use python3
+python -m pytest tests/              # Will fail - use python3  
+pip install mcp                      # Will fail - use pip3 or uv
+python -c "import sys; print(sys.version)"  # Will fail - use python3
+```
+
+**Why `uv run` is Preferred**:
+1. **Project Standard**: This project is configured to use `uv` for dependency management
+2. **Environment Isolation**: `uv run` ensures proper virtual environment activation
+3. **Dependency Resolution**: Automatically handles project dependencies
+4. **Consistent Execution**: Guarantees consistent runtime environment
+5. **Development Workflow**: Integrates with project's development tools
+
+**Command Priority**:
+1. **First Choice**: `uv run python3 [command]`
+2. **Fallback**: `python3 [command]` (only if uv unavailable)
+3. **Never Use**: `python [command]` (will fail on this system)
+
 ### Import Statement Requirements
 
 **CRITICAL**: All imports in this project must use **absolute imports only**. Never use relative imports.
@@ -103,39 +153,40 @@ Extracted reusable components:
 
 ### Setup and Installation
 ```bash
-# Install MCP Python SDK (FastMCP)
-pip install mcp
+# Install dependencies (uv handles this automatically)
+uv sync
 
-# Install additional dependencies for text processing
-pip install python-dateutil jieba scikit-learn
+# Install additional dependencies if needed
+uv add python-dateutil jieba scikit-learn
 
-# Run the MCP server in development mode
-python src/synapse/server.py
-
-# Run with uv (recommended)
-uv run python src/synapse/server.py
+# Run the MCP server in development mode (PREFERRED)
+uv run python3 src/synapse/server.py
 
 # Test MCP server with different transports
-uv run python src/synapse/server.py  # stdio (default)
-uv run python src/synapse/server.py --transport sse --port 8000  # SSE
-uv run python src/synapse/server.py --transport streamable-http --port 8001  # Streamable HTTP
+uv run python3 src/synapse/server.py  # stdio (default)
+uv run python3 src/synapse/server.py --transport sse --port 8000  # SSE
+uv run python3 src/synapse/server.py --transport streamable-http --port 8001  # Streamable HTTP
+
+# Alternative: Direct installation (only if uv unavailable)
+# pip3 install mcp
+# pip3 install python-dateutil jieba scikit-learn
 ```
 
 ### Development Workflow
 ```bash
-# Run tests
-python -m pytest tests/
+# Run tests (PREFERRED)
+uv run python3 -m pytest tests/
 
 # Type checking (if using mypy)
-mypy src/
+uv run mypy src/
 
 # Format code
-black src/ tests/
+uv run black src/ tests/
 
-# Lint code
-flake8 src/ tests/
+# Lint code  
+uv run flake8 src/ tests/
 
-# Run in development with hot reload
+# Run in development with hot reload (PREFERRED)
 uv run mcp dev src/synapse/server.py
 
 # Add dependencies on the fly
@@ -143,6 +194,12 @@ uv run mcp dev src/synapse/server.py --with pandas --with numpy
 
 # Mount local code in editable mode
 uv run mcp dev src/synapse/server.py --with-editable .
+
+# Alternative: Direct commands (only if uv unavailable)
+# python3 -m pytest tests/
+# mypy src/
+# black src/ tests/
+# flake8 src/ tests/
 ```
 
 ### Official MCP Python SDK Patterns
