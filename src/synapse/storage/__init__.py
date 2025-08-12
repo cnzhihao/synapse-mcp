@@ -1,13 +1,21 @@
 """
-Synapse MCP 存储系统模块
+Synapse MCP Storage System
 
-这个包包含了存储系统的核心组件：
-- paths: 跨平台存储路径管理
-- initializer: 存储初始化逻辑
-- file_manager: JSON 文件存储和管理
+This package contains the core storage components for Synapse MCP:
+- paths: Cross-platform storage path management using platformdirs
+- initializer: Storage initialization and first-run setup logic
+- file_manager: JSON file storage and management (to be implemented)
 
-存储系统遵循跨平台最佳实践，使用标准目录结构。
+The storage system follows cross-platform best practices and uses standard
+directory structures appropriate for each operating system.
 """
 
-# 存储组件将在后续实现
-__all__ = []
+from .paths import StoragePaths, storage_paths
+from .initializer import StorageInitializer, initialize_synapse_storage
+
+__all__ = [
+    "StoragePaths",
+    "storage_paths", 
+    "StorageInitializer",
+    "initialize_synapse_storage"
+]
