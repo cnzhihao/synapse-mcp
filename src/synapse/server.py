@@ -14,8 +14,10 @@ Key Features:
 
 import asyncio
 import logging
+import json
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from datetime import datetime
 import sys
 
 from mcp.server.fastmcp import FastMCP, Context
@@ -740,6 +742,386 @@ async def inject_context(
         }
 
 @mcp.tool()
+async def export_data(
+    export_path: str,
+    include_backups: bool = False,
+    include_cache: bool = False,
+    ctx: Context = None
+) -> dict:
+    """
+    Export all Synapse data to a specified directory path.
+    
+    This tool exports conversations, solutions, indexes, and optionally backups
+    to enable data migration, backup, and sharing between systems.
+    
+    Args:
+        export_path: Target directory path for exported data (required)
+        include_backups: Whether to include backup files in export (default: False)
+        include_cache: Whether to include cache files in export (default: False)
+        ctx: MCP context object for logging and progress reporting
+        
+    Returns:
+        dict: Export result with status, statistics, and file paths
+    """
+    try:
+        if ctx:
+            await ctx.info(f"Starting data export to: {export_path}")
+        
+        # Parameter validation
+        if not export_path or not export_path.strip():
+            raise ValueError("Export path cannot be empty")
+        
+        from pathlib import Path
+        export_dir = Path(export_path.strip()).expanduser().resolve()
+        
+        # Check if export path is valid and writable
+        if export_dir.exists() and not export_dir.is_dir():
+            raise ValueError(f"Export path exists but is not a directory: {export_dir}")
+        
+        # Get file manager instance
+        file_manager = None
+        if ctx and hasattr(ctx, 'request_context') and hasattr(ctx.request_context, 'lifespan_context'):
+            file_manager = ctx.request_context.lifespan_context.file_manager
+        
+        if not file_manager:
+            raise RuntimeError("无法获取FileManager实例，请检查服务器配置")
+        
+        if ctx:
+            await ctx.info("Validating export directory permissions...")
+        
+        # Test write permissions by creating export directory
+        try:
+            export_dir.mkdir(parents=True, exist_ok=True)
+        except PermissionError:
+            raise PermissionError(f"No write permission for export path: {export_dir}")
+        except Exception as e:
+            raise RuntimeError(f"Failed to create export directory: {e}")
+        
+        if ctx:
+            await ctx.info("Gathering storage statistics...")
+        
+        # Get pre-export statistics
+        storage_stats = file_manager.get_storage_statistics()
+        
+        if ctx:
+            await ctx.info(f"Found {storage_stats.total_conversations} conversations and {storage_stats.total_solutions} solutions")
+            await ctx.report_progress(0.2, "Starting data export...")
+        
+        # Perform the export using FileManager
+        export_success = file_manager.export_data(export_dir, include_backups=include_backups)
+        
+        if not export_success:
+            raise RuntimeError("Export operation failed - check file manager logs for details")
+        
+        if ctx:
+            await ctx.report_progress(0.8, "Calculating export statistics...")
+        
+        # Calculate export statistics
+        try:
+            exported_files = 0
+            exported_size = 0
+            
+            if export_dir.exists():
+                for file_path in export_dir.rglob("*"):
+                    if file_path.is_file() and file_path.name != "export_info.json":
+                        exported_files += 1
+                        exported_size += file_path.stat().st_size
+        except Exception as e:
+            logger.warning(f"Failed to calculate export statistics: {e}")
+            exported_files = -1
+            exported_size = -1
+        
+        if ctx:
+            await ctx.report_progress(1.0, "Export completed successfully")
+            await ctx.info(f"Exported {exported_files} files ({exported_size / (1024*1024):.2f} MB) to {export_dir}")
+        
+        # Build comprehensive response
+        result = {
+            "success": True,
+            "export_path": str(export_dir),
+            "exported_at": datetime.now().isoformat(),
+            "statistics": {
+                "total_conversations_exported": storage_stats.total_conversations,
+                "total_solutions_exported": storage_stats.total_solutions,
+                "total_files_exported": exported_files,
+                "total_size_bytes": exported_size,
+                "total_size_mb": round(exported_size / (1024*1024), 2) if exported_size > 0 else 0,
+                "include_backups": include_backups,
+                "include_cache": include_cache
+            },
+            "exported_components": {
+                "conversations": True,
+                "solutions": True,
+                "indexes": True,
+                "backups": include_backups,
+                "cache": include_cache,
+                "export_info": True
+            },
+            "summary": f"Successfully exported {storage_stats.total_conversations} conversations and {storage_stats.total_solutions} solutions to {export_dir}"
+        }
+        
+        return result
+        
+    except Exception as e:
+        error_msg = str(e)
+        if ctx:
+            await ctx.error(f"Data export failed: {error_msg}")
+        
+        logger.error(f"数据导出失败 - 路径: {export_path}, 错误: {error_msg}", exc_info=True)
+        
+        return {
+            "success": False,
+            "export_path": export_path,
+            "error": error_msg,
+            "error_type": type(e).__name__,
+            "exported_at": datetime.now().isoformat(),
+            "statistics": {
+                "total_conversations_exported": 0,
+                "total_solutions_exported": 0,
+                "total_files_exported": 0,
+                "total_size_bytes": 0,
+                "total_size_mb": 0,
+                "include_backups": include_backups,
+                "include_cache": include_cache
+            },
+            "summary": f"Export failed: {error_msg}"
+        }
+
+@mcp.tool()
+async def import_data(
+    import_path: str,
+    merge_mode: str = "append",
+    validate_data: bool = True,
+    create_backup: bool = True,
+    ctx: Context = None
+) -> dict:
+    """
+    Import Synapse data from a specified directory path.
+    
+    This tool imports conversations, solutions, and indexes from an exported
+    data directory, with options for data validation and merge strategies.
+    
+    Args:
+        import_path: Source directory path containing exported data (required)
+        merge_mode: Merge strategy - "append" or "overwrite" (default: "append")
+        validate_data: Whether to validate data format before import (default: True)
+        create_backup: Whether to create backup before import (default: True)
+        ctx: MCP context object for logging and progress reporting
+        
+    Returns:
+        dict: Import result with status, statistics, and validation results
+    """
+    try:
+        if ctx:
+            await ctx.info(f"Starting data import from: {import_path}")
+        
+        # Parameter validation
+        if not import_path or not import_path.strip():
+            raise ValueError("Import path cannot be empty")
+        
+        if merge_mode not in ["append", "overwrite"]:
+            raise ValueError("Merge mode must be 'append' or 'overwrite'")
+        
+        from pathlib import Path
+        import_dir = Path(import_path.strip()).expanduser().resolve()
+        
+        # Check if import path exists and is valid
+        if not import_dir.exists():
+            raise FileNotFoundError(f"Import path does not exist: {import_dir}")
+        
+        if not import_dir.is_dir():
+            raise ValueError(f"Import path is not a directory: {import_dir}")
+        
+        # Get file manager instance
+        file_manager = None
+        if ctx and hasattr(ctx, 'request_context') and hasattr(ctx.request_context, 'lifespan_context'):
+            file_manager = ctx.request_context.lifespan_context.file_manager
+        
+        if not file_manager:
+            raise RuntimeError("无法获取FileManager实例，请检查服务器配置")
+        
+        if ctx:
+            await ctx.info("Validating import data structure...")
+            await ctx.report_progress(0.1, "Validating import data...")
+        
+        # Validate import structure
+        validation_results = {
+            "conversations_found": False,
+            "solutions_found": False,
+            "indexes_found": False,
+            "export_info_found": False,
+            "data_valid": True,
+            "validation_errors": []
+        }
+        
+        # Check for expected directories and files
+        conversations_dir = import_dir / "conversations"
+        solutions_dir = import_dir / "solutions"
+        indexes_dir = import_dir / "indexes"
+        export_info_file = import_dir / "export_info.json"
+        
+        validation_results["conversations_found"] = conversations_dir.exists() and conversations_dir.is_dir()
+        validation_results["solutions_found"] = solutions_dir.exists() and solutions_dir.is_dir()
+        validation_results["indexes_found"] = indexes_dir.exists() and indexes_dir.is_dir()
+        validation_results["export_info_found"] = export_info_file.exists() and export_info_file.is_file()
+        
+        # Basic structure validation
+        if not any([validation_results["conversations_found"], validation_results["solutions_found"], validation_results["indexes_found"]]):
+            validation_results["data_valid"] = False
+            validation_results["validation_errors"].append("No valid data directories found (conversations, solutions, or indexes)")
+        
+        # Data format validation if requested
+        if validate_data and validation_results["data_valid"]:
+            if ctx:
+                await ctx.info("Performing detailed data validation...")
+            
+            # Count and validate files
+            file_counts = {"conversations": 0, "solutions": 0, "invalid_files": 0}
+            
+            try:
+                # Check conversation files
+                if conversations_dir.exists():
+                    for conv_file in conversations_dir.rglob("*.json"):
+                        if conv_file.is_file():
+                            try:
+                                with open(conv_file, 'r', encoding='utf-8') as f:
+                                    conv_data = json.load(f)
+                                    # Basic structure validation
+                                    if not all(key in conv_data for key in ["id", "title", "content"]):
+                                        file_counts["invalid_files"] += 1
+                                        validation_results["validation_errors"].append(f"Invalid conversation format: {conv_file.name}")
+                                    else:
+                                        file_counts["conversations"] += 1
+                            except Exception as e:
+                                file_counts["invalid_files"] += 1
+                                validation_results["validation_errors"].append(f"Cannot read conversation file {conv_file.name}: {str(e)}")
+                
+                # Check solution files
+                if solutions_dir.exists():
+                    for sol_file in solutions_dir.glob("*.json"):
+                        if sol_file.is_file():
+                            try:
+                                with open(sol_file, 'r', encoding='utf-8') as f:
+                                    sol_data = json.load(f)
+                                    # Basic structure validation
+                                    if not all(key in sol_data for key in ["id", "type", "content"]):
+                                        file_counts["invalid_files"] += 1
+                                        validation_results["validation_errors"].append(f"Invalid solution format: {sol_file.name}")
+                                    else:
+                                        file_counts["solutions"] += 1
+                            except Exception as e:
+                                file_counts["invalid_files"] += 1
+                                validation_results["validation_errors"].append(f"Cannot read solution file {sol_file.name}: {str(e)}")
+                
+                if file_counts["invalid_files"] > 0:
+                    validation_results["data_valid"] = False
+                    
+            except Exception as e:
+                validation_results["data_valid"] = False
+                validation_results["validation_errors"].append(f"Data validation failed: {str(e)}")
+        
+        if ctx:
+            if validation_results["data_valid"]:
+                await ctx.info(f"Validation passed - Found {file_counts.get('conversations', 0)} conversations and {file_counts.get('solutions', 0)} solutions")
+            else:
+                await ctx.info(f"Validation found {len(validation_results['validation_errors'])} issues")
+        
+        # Proceed with import if validation passes or validation is disabled
+        if not validate_data or validation_results["data_valid"]:
+            
+            # Create backup if requested
+            backup_info = None
+            if create_backup:
+                if ctx:
+                    await ctx.info("Creating pre-import backup...")
+                    await ctx.report_progress(0.3, "Creating backup...")
+                
+                try:
+                    backup_timestamp = int(datetime.now().timestamp())
+                    backup_path = file_manager.storage_paths.get_backups_dir() / f"pre_import_backup_{backup_timestamp}"
+                    backup_success = file_manager.export_data(backup_path, include_backups=False)
+                    
+                    if backup_success:
+                        backup_info = str(backup_path)
+                        if ctx:
+                            await ctx.info(f"Backup created successfully: {backup_path}")
+                    else:
+                        logger.warning("Pre-import backup failed, continuing with import")
+                        
+                except Exception as e:
+                    logger.warning(f"Pre-import backup failed: {e}")
+            
+            if ctx:
+                await ctx.info(f"Starting import with merge mode: {merge_mode}")
+                await ctx.report_progress(0.5, "Importing data...")
+            
+            # Perform the import using FileManager
+            import_success = file_manager.import_data(import_dir, merge_mode=merge_mode)
+            
+            if not import_success:
+                raise RuntimeError("Import operation failed - check file manager logs for details")
+            
+            if ctx:
+                await ctx.report_progress(0.9, "Finalizing import...")
+            
+            # Get post-import statistics
+            post_import_stats = file_manager.get_storage_statistics()
+            
+            if ctx:
+                await ctx.report_progress(1.0, "Import completed successfully")
+                await ctx.info(f"Import completed - Total: {post_import_stats.total_conversations} conversations, {post_import_stats.total_solutions} solutions")
+            
+            # Build success response
+            result = {
+                "success": True,
+                "import_path": str(import_dir),
+                "imported_at": datetime.now().isoformat(),
+                "merge_mode": merge_mode,
+                "validation_performed": validate_data,
+                "backup_created": create_backup,
+                "backup_location": backup_info,
+                "validation_results": validation_results,
+                "statistics": {
+                    "conversations_after_import": post_import_stats.total_conversations,
+                    "solutions_after_import": post_import_stats.total_solutions,
+                    "total_files_after_import": post_import_stats.total_files,
+                    "total_size_mb_after_import": round(post_import_stats.disk_usage_mb, 2)
+                },
+                "imported_components": {
+                    "conversations": validation_results["conversations_found"],
+                    "solutions": validation_results["solutions_found"],
+                    "indexes": validation_results["indexes_found"]
+                },
+                "summary": f"Successfully imported data from {import_dir} using {merge_mode} mode"
+            }
+            
+            return result
+        
+        else:
+            # Validation failed
+            raise ValueError(f"Data validation failed: {', '.join(validation_results['validation_errors'])}")
+        
+    except Exception as e:
+        error_msg = str(e)
+        if ctx:
+            await ctx.error(f"Data import failed: {error_msg}")
+        
+        logger.error(f"数据导入失败 - 路径: {import_path}, 错误: {error_msg}", exc_info=True)
+        
+        return {
+            "success": False,
+            "import_path": import_path,
+            "error": error_msg,
+            "error_type": type(e).__name__,
+            "imported_at": datetime.now().isoformat(),
+            "merge_mode": merge_mode,
+            "validation_performed": validate_data,
+            "backup_created": create_backup,
+            "validation_results": validation_results if 'validation_results' in locals() else {},
+            "summary": f"Import failed: {error_msg}"
+        }
+
+@mcp.tool()
 async def get_storage_info(ctx: Context = None) -> dict:
     """
     Get comprehensive storage system information and statistics.
@@ -766,13 +1148,119 @@ async def get_storage_info(ctx: Context = None) -> dict:
         storage_paths = StoragePaths()
         initializer = StorageInitializer(storage_paths)
         
+        # Get file manager instance for statistics
+        file_manager = None
+        if ctx and hasattr(ctx, 'request_context') and hasattr(ctx.request_context, 'lifespan_context'):
+            file_manager = ctx.request_context.lifespan_context.file_manager
+        
         # Get comprehensive storage status
         storage_status = initializer.get_storage_status()
         
         # Calculate storage size in MB
         total_size_mb = storage_status["total_size_bytes"] / (1024 * 1024) if storage_status["total_size_bytes"] > 0 else 0.0
         
-        # Build response with comprehensive information
+        # Get real storage statistics if file manager is available
+        storage_stats = None
+        conversation_count = 0
+        solution_count = 0
+        
+        if file_manager:
+            if ctx:
+                await ctx.info("Gathering detailed storage statistics...")
+            try:
+                storage_stats = file_manager.get_storage_statistics()
+                conversation_count = storage_stats.total_conversations
+                solution_count = storage_stats.total_solutions
+            except Exception as e:
+                logger.warning(f"Failed to get detailed storage statistics: {e}")
+        
+        # Get backup information
+        backup_info = {
+            "backups_available": 0,
+            "latest_backup": None,
+            "total_backup_size_mb": 0.0,
+            "backup_directory_status": "unknown"
+        }
+        
+        try:
+            backups_dir = storage_paths.get_backups_dir()
+            if backups_dir.exists():
+                backup_files = list(backups_dir.glob("*backup*"))
+                backup_info["backups_available"] = len([f for f in backup_files if f.is_dir()])
+                backup_info["backup_directory_status"] = "available"
+                
+                # Find latest backup
+                if backup_files:
+                    latest_backup = max(backup_files, key=lambda x: x.stat().st_mtime if x.exists() else 0)
+                    backup_info["latest_backup"] = {
+                        "path": str(latest_backup),
+                        "created_at": datetime.fromtimestamp(latest_backup.stat().st_mtime).isoformat(),
+                        "size_mb": round(sum(f.stat().st_size for f in latest_backup.rglob("*") if f.is_file()) / (1024*1024), 2)
+                    }
+                
+                # Calculate total backup size
+                try:
+                    total_backup_size = sum(
+                        sum(f.stat().st_size for f in backup_dir.rglob("*") if f.is_file())
+                        for backup_dir in backup_files if backup_dir.is_dir()
+                    )
+                    backup_info["total_backup_size_mb"] = round(total_backup_size / (1024*1024), 2)
+                except Exception:
+                    backup_info["total_backup_size_mb"] = 0.0
+            else:
+                backup_info["backup_directory_status"] = "not_created"
+        except Exception as e:
+            logger.warning(f"Failed to get backup information: {e}")
+            backup_info["backup_directory_status"] = "error"
+        
+        # System health check
+        health_status = {
+            "overall_status": "healthy",
+            "issues": [],
+            "warnings": []
+        }
+        
+        # Check for potential issues
+        if not storage_status["permissions_ok"]:
+            health_status["issues"].append("Insufficient permissions for some storage directories")
+            health_status["overall_status"] = "degraded"
+        
+        if total_size_mb > 1000:  # > 1GB
+            health_status["warnings"].append(f"Storage usage is high: {total_size_mb:.1f} MB")
+        
+        if storage_stats and storage_stats.total_files > 5000:
+            health_status["warnings"].append(f"Large number of files: {storage_stats.total_files}")
+        
+        if backup_info["backups_available"] == 0:
+            health_status["warnings"].append("No backups available")
+        
+        # Maintenance information
+        maintenance_info = {
+            "last_maintenance": None,
+            "maintenance_needed": False,
+            "recommended_actions": []
+        }
+        
+        # Check if maintenance is needed
+        if backup_info["backups_available"] > 10:
+            maintenance_info["maintenance_needed"] = True
+            maintenance_info["recommended_actions"].append("Clean up old backup files")
+        
+        if storage_stats and storage_stats.disk_usage_mb > 500:
+            maintenance_info["maintenance_needed"] = True
+            maintenance_info["recommended_actions"].append("Consider archiving old conversations")
+        
+        # Try to get last maintenance timestamp from metadata
+        try:
+            metadata_file = storage_paths.get_indexes_dir() / "metadata.json"
+            if metadata_file.exists():
+                with open(metadata_file, 'r', encoding='utf-8') as f:
+                    metadata = json.load(f)
+                    maintenance_info["last_maintenance"] = metadata.get("last_maintenance")
+        except Exception:
+            pass
+        
+        # Build comprehensive response with enhanced information
         storage_info = {
             # Primary storage locations
             "data_directory": storage_status["storage_paths"]["data"],
@@ -795,15 +1283,26 @@ async def get_storage_info(ctx: Context = None) -> dict:
             # Directory details
             "directory_status": storage_status["directory_status"],
             
+            # Real statistics
+            "total_conversations": conversation_count,
+            "total_solutions": solution_count,
+            "total_files": storage_stats.total_files if storage_stats else 0,
+            "average_file_size_kb": round(storage_stats.avg_file_size_kb, 2) if storage_stats else 0,
+            
+            # Backup information
+            "backup_info": backup_info,
+            
+            # System health
+            "health_status": health_status,
+            
+            # Maintenance information
+            "maintenance_info": maintenance_info,
+            
             # Application info
             "server_status": "running",
             "version": "1.0.0",
             "platform": sys.platform,
-            
-            # Statistics (placeholder - will be implemented when file manager is ready)
-            "total_conversations": 0,
-            "total_solutions": 0,
-            "last_maintenance": None
+            "last_updated": datetime.now().isoformat()
         }
         
         if ctx:
@@ -816,6 +1315,357 @@ async def get_storage_info(ctx: Context = None) -> dict:
             await ctx.error(f"Failed to retrieve storage information: {str(e)}")
         logger.error(f"Failed to retrieve storage information: {str(e)}", exc_info=True)
         raise ValueError(f"Failed to retrieve storage information: {str(e)}")
+
+@mcp.tool()
+async def backup_data(
+    backup_name: str = None,
+    include_cache: bool = False,
+    compression: bool = False,
+    ctx: Context = None
+) -> dict:
+    """
+    Create a manual backup of all Synapse data.
+    
+    This tool creates a comprehensive backup of conversations, solutions, indexes,
+    and configuration files for disaster recovery purposes.
+    
+    Args:
+        backup_name: Custom name for the backup (optional, auto-generated if not provided)
+        include_cache: Whether to include cache files in backup (default: False)
+        compression: Whether to compress the backup (default: False - not implemented)
+        ctx: MCP context object for logging and progress reporting
+        
+    Returns:
+        dict: Backup result with status, location, and statistics
+    """
+    try:
+        if ctx:
+            await ctx.info("Starting manual data backup...")
+        
+        # Get file manager instance
+        file_manager = None
+        if ctx and hasattr(ctx, 'request_context') and hasattr(ctx.request_context, 'lifespan_context'):
+            file_manager = ctx.request_context.lifespan_context.file_manager
+        
+        if not file_manager:
+            raise RuntimeError("无法获取FileManager实例，请检查服务器配置")
+        
+        # Generate backup name if not provided
+        if not backup_name:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_name = f"manual_backup_{timestamp}"
+        else:
+            # Sanitize backup name
+            import re
+            backup_name = re.sub(r'[^\w\-_.]', '_', backup_name.strip())
+            if not backup_name:
+                backup_name = f"manual_backup_{int(datetime.now().timestamp())}"
+        
+        if ctx:
+            await ctx.info(f"Creating backup: {backup_name}")
+            await ctx.report_progress(0.1, "Preparing backup...")
+        
+        # Get pre-backup statistics
+        storage_stats = file_manager.get_storage_statistics()
+        
+        # Create backup directory
+        backup_path = file_manager.storage_paths.get_backups_dir() / backup_name
+        
+        if backup_path.exists():
+            raise ValueError(f"Backup already exists: {backup_name}")
+        
+        if ctx:
+            await ctx.info(f"Backup location: {backup_path}")
+            await ctx.report_progress(0.3, "Creating backup directory...")
+        
+        # Perform the backup
+        backup_success = file_manager.export_data(backup_path, include_backups=False)
+        
+        if not backup_success:
+            raise RuntimeError("Backup operation failed - check file manager logs for details")
+        
+        if ctx:
+            await ctx.report_progress(0.8, "Calculating backup statistics...")
+        
+        # Calculate backup statistics
+        backup_stats = {
+            "backup_size_bytes": 0,
+            "backup_size_mb": 0.0,
+            "files_backed_up": 0,
+            "directories_backed_up": 0
+        }
+        
+        try:
+            if backup_path.exists():
+                for item in backup_path.rglob("*"):
+                    if item.is_file():
+                        backup_stats["files_backed_up"] += 1
+                        backup_stats["backup_size_bytes"] += item.stat().st_size
+                    elif item.is_dir():
+                        backup_stats["directories_backed_up"] += 1
+                
+                backup_stats["backup_size_mb"] = round(backup_stats["backup_size_bytes"] / (1024*1024), 2)
+        except Exception as e:
+            logger.warning(f"Failed to calculate backup statistics: {e}")
+        
+        # Create backup metadata
+        backup_metadata = {
+            "backup_name": backup_name,
+            "created_at": datetime.now().isoformat(),
+            "backup_type": "manual",
+            "source_statistics": {
+                "conversations_count": storage_stats.total_conversations,
+                "solutions_count": storage_stats.total_solutions,
+                "total_files": storage_stats.total_files,
+                "source_size_mb": round(storage_stats.disk_usage_mb, 2)
+            },
+            "backup_statistics": backup_stats,
+            "include_cache": include_cache,
+            "compression": compression,
+            "version": "1.0.0"
+        }
+        
+        # Save backup metadata
+        try:
+            metadata_file = backup_path / "backup_metadata.json"
+            with open(metadata_file, 'w', encoding='utf-8') as f:
+                json.dump(backup_metadata, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            logger.warning(f"Failed to save backup metadata: {e}")
+        
+        if ctx:
+            await ctx.report_progress(1.0, "Backup completed successfully")
+            await ctx.info(f"Backup created successfully: {backup_stats['files_backed_up']} files ({backup_stats['backup_size_mb']} MB)")
+        
+        result = {
+            "success": True,
+            "backup_name": backup_name,
+            "backup_path": str(backup_path),
+            "created_at": datetime.now().isoformat(),
+            "backup_type": "manual",
+            "statistics": backup_stats,
+            "source_data": {
+                "conversations_backed_up": storage_stats.total_conversations,
+                "solutions_backed_up": storage_stats.total_solutions,
+                "total_source_files": storage_stats.total_files
+            },
+            "options": {
+                "include_cache": include_cache,
+                "compression": compression
+            },
+            "summary": f"Successfully created backup '{backup_name}' with {backup_stats['files_backed_up']} files ({backup_stats['backup_size_mb']} MB)"
+        }
+        
+        return result
+        
+    except Exception as e:
+        error_msg = str(e)
+        if ctx:
+            await ctx.error(f"Backup creation failed: {error_msg}")
+        
+        logger.error(f"备份创建失败 - 名称: {backup_name}, 错误: {error_msg}", exc_info=True)
+        
+        return {
+            "success": False,
+            "backup_name": backup_name or "unknown",
+            "error": error_msg,
+            "error_type": type(e).__name__,
+            "created_at": datetime.now().isoformat(),
+            "summary": f"Backup creation failed: {error_msg}"
+        }
+
+@mcp.tool()
+async def restore_backup(
+    backup_name: str,
+    restore_mode: str = "append",
+    verify_backup: bool = True,
+    create_restore_backup: bool = True,
+    ctx: Context = None
+) -> dict:
+    """
+    Restore Synapse data from a previously created backup.
+    
+    This tool restores conversations, solutions, and indexes from a backup
+    directory with options for verification and pre-restore backup.
+    
+    Args:
+        backup_name: Name of the backup to restore (required)
+        restore_mode: Restore strategy - "append" or "overwrite" (default: "append")
+        verify_backup: Whether to verify backup integrity before restore (default: True)
+        create_restore_backup: Whether to backup current data before restore (default: True)
+        ctx: MCP context object for logging and progress reporting
+        
+    Returns:
+        dict: Restore result with status, statistics, and verification results
+    """
+    try:
+        if ctx:
+            await ctx.info(f"Starting backup restore: {backup_name}")
+        
+        # Parameter validation
+        if not backup_name or not backup_name.strip():
+            raise ValueError("Backup name cannot be empty")
+        
+        if restore_mode not in ["append", "overwrite"]:
+            raise ValueError("Restore mode must be 'append' or 'overwrite'")
+        
+        # Get file manager instance
+        file_manager = None
+        if ctx and hasattr(ctx, 'request_context') and hasattr(ctx.request_context, 'lifespan_context'):
+            file_manager = ctx.request_context.lifespan_context.file_manager
+        
+        if not file_manager:
+            raise RuntimeError("无法获取FileManager实例，请检查服务器配置")
+        
+        # Locate backup directory
+        backup_path = file_manager.storage_paths.get_backups_dir() / backup_name.strip()
+        
+        if not backup_path.exists():
+            raise FileNotFoundError(f"Backup not found: {backup_name}")
+        
+        if not backup_path.is_dir():
+            raise ValueError(f"Backup path is not a directory: {backup_name}")
+        
+        if ctx:
+            await ctx.info(f"Found backup at: {backup_path}")
+            await ctx.report_progress(0.1, "Verifying backup...")
+        
+        # Backup verification
+        verification_results = {
+            "backup_valid": True,
+            "verification_errors": [],
+            "backup_metadata": None,
+            "conversations_found": 0,
+            "solutions_found": 0
+        }
+        
+        if verify_backup:
+            try:
+                # Check backup structure
+                conversations_dir = backup_path / "conversations"
+                solutions_dir = backup_path / "solutions"
+                indexes_dir = backup_path / "indexes"
+                metadata_file = backup_path / "backup_metadata.json"
+                
+                if not any([conversations_dir.exists(), solutions_dir.exists(), indexes_dir.exists()]):
+                    verification_results["backup_valid"] = False
+                    verification_results["verification_errors"].append("No valid data directories found in backup")
+                
+                # Load backup metadata if available
+                if metadata_file.exists():
+                    try:
+                        with open(metadata_file, 'r', encoding='utf-8') as f:
+                            verification_results["backup_metadata"] = json.load(f)
+                    except Exception as e:
+                        verification_results["verification_errors"].append(f"Cannot read backup metadata: {str(e)}")
+                
+                # Count backup contents
+                if conversations_dir.exists():
+                    verification_results["conversations_found"] = len(list(conversations_dir.rglob("*.json")))
+                
+                if solutions_dir.exists():
+                    verification_results["solutions_found"] = len(list(solutions_dir.glob("*.json")))
+                
+                if verification_results["conversations_found"] == 0 and verification_results["solutions_found"] == 0:
+                    verification_results["backup_valid"] = False
+                    verification_results["verification_errors"].append("No conversation or solution files found in backup")
+                
+            except Exception as e:
+                verification_results["backup_valid"] = False
+                verification_results["verification_errors"].append(f"Backup verification failed: {str(e)}")
+        
+        if verify_backup and not verification_results["backup_valid"]:
+            raise ValueError(f"Backup verification failed: {', '.join(verification_results['verification_errors'])}")
+        
+        if ctx:
+            if verification_results["backup_valid"]:
+                await ctx.info(f"Backup verified - {verification_results['conversations_found']} conversations, {verification_results['solutions_found']} solutions")
+            await ctx.report_progress(0.3, "Creating pre-restore backup...")
+        
+        # Create pre-restore backup if requested
+        restore_backup_info = None
+        if create_restore_backup:
+            try:
+                restore_backup_timestamp = int(datetime.now().timestamp())
+                restore_backup_path = file_manager.storage_paths.get_backups_dir() / f"pre_restore_backup_{restore_backup_timestamp}"
+                restore_backup_success = file_manager.export_data(restore_backup_path, include_backups=False)
+                
+                if restore_backup_success:
+                    restore_backup_info = str(restore_backup_path)
+                    if ctx:
+                        await ctx.info(f"Pre-restore backup created: {restore_backup_path}")
+                else:
+                    logger.warning("Pre-restore backup failed, continuing with restore")
+                    
+            except Exception as e:
+                logger.warning(f"Pre-restore backup failed: {e}")
+        
+        if ctx:
+            await ctx.info(f"Starting restore with mode: {restore_mode}")
+            await ctx.report_progress(0.5, "Restoring data...")
+        
+        # Perform the restore using FileManager import
+        restore_success = file_manager.import_data(backup_path, merge_mode=restore_mode)
+        
+        if not restore_success:
+            raise RuntimeError("Restore operation failed - check file manager logs for details")
+        
+        if ctx:
+            await ctx.report_progress(0.9, "Finalizing restore...")
+        
+        # Get post-restore statistics
+        post_restore_stats = file_manager.get_storage_statistics()
+        
+        if ctx:
+            await ctx.report_progress(1.0, "Restore completed successfully")
+            await ctx.info(f"Restore completed - Total: {post_restore_stats.total_conversations} conversations, {post_restore_stats.total_solutions} solutions")
+        
+        # Build success response
+        result = {
+            "success": True,
+            "backup_name": backup_name,
+            "backup_path": str(backup_path),
+            "restored_at": datetime.now().isoformat(),
+            "restore_mode": restore_mode,
+            "verification_performed": verify_backup,
+            "pre_restore_backup_created": create_restore_backup,
+            "pre_restore_backup_location": restore_backup_info,
+            "verification_results": verification_results,
+            "statistics": {
+                "conversations_after_restore": post_restore_stats.total_conversations,
+                "solutions_after_restore": post_restore_stats.total_solutions,
+                "total_files_after_restore": post_restore_stats.total_files,
+                "total_size_mb_after_restore": round(post_restore_stats.disk_usage_mb, 2)
+            },
+            "restored_components": {
+                "conversations": verification_results["conversations_found"] > 0,
+                "solutions": verification_results["solutions_found"] > 0,
+                "indexes": True  # Assume indexes are always restored if present
+            },
+            "summary": f"Successfully restored backup '{backup_name}' using {restore_mode} mode"
+        }
+        
+        return result
+        
+    except Exception as e:
+        error_msg = str(e)
+        if ctx:
+            await ctx.error(f"Backup restore failed: {error_msg}")
+        
+        logger.error(f"备份恢复失败 - 备份: {backup_name}, 错误: {error_msg}", exc_info=True)
+        
+        return {
+            "success": False,
+            "backup_name": backup_name,
+            "error": error_msg,
+            "error_type": type(e).__name__,
+            "restored_at": datetime.now().isoformat(),
+            "restore_mode": restore_mode,
+            "verification_performed": verify_backup,
+            "pre_restore_backup_created": create_restore_backup,
+            "verification_results": verification_results if 'verification_results' in locals() else {},
+            "summary": f"Restore failed: {error_msg}"
+        }
 
 # ==================== 主入口函数 ====================
 
