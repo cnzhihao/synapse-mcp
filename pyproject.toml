@@ -7,6 +7,7 @@ requires-python = ">=3.10"
 dependencies = [
     "mcp[cli]>=1.12.4", # MCP Python SDK (最新稳定版本)
     "platformdirs>=4.3.0", # 跨平台目录规范
+    "psutil>=7.0.0",
     "pydantic>=2.11.0", # 数据验证和序列化 (性能优化版本)
     "python-dateutil>=2.9.0", # 日期时间处理
 ]

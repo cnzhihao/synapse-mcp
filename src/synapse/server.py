@@ -1,16 +1,15 @@
 """
-Synapse MCP Server 主服务器模块
+Synapse MCP Server - Main Server Module
 
-这个模块包含 MCP (Model Context Protocol) 服务器的完整实现，
-提供智能记忆和知识检索功能。
+This module contains the complete implementation of an MCP (Model Context Protocol) server
+that provides intelligent memory and knowledge retrieval functionality.
 
-主要功能：
-1. 使用FastMCP框架创建MCP服务器
-2. 注册所有MCP工具（save-conversation, search-knowledge等）
-3. 提供统一的错误处理和响应格式
-4. 参数验证和服务器生命周期管理
-
-作为MCP服务器，它遵循MCP协议标准，与Claude等AI助手无缝集成。
+Key Features:
+- FastMCP framework-based MCP server
+- Tool registration (save-conversation, search-knowledge, inject-context)
+- Unified error handling and response formatting
+- Parameter validation and server lifecycle management
+- MCP protocol compliance for seamless AI assistant integration
 """
 
 import asyncio
@@ -21,46 +20,44 @@ import sys
 
 from mcp.server.fastmcp import FastMCP, Context
 
-from synapse.models import ConversationRecord, Solution
+from synapse.models import ConversationRecord
 from synapse.storage.paths import StoragePaths
 from synapse.storage.initializer import StorageInitializer, initialize_synapse_storage
 from synapse.storage.file_manager import FileManager
 from synapse.utils.logging_config import setup_logging
 from synapse.tools.save_conversation import SaveConversationTool
-from synapse.tools.extract_solutions import ExtractSolutionsTool
 from synapse.tools.search_knowledge import SearchKnowledgeTool
 from synapse.tools.inject_context import InjectContextTool
 
-# 设置日志
 logger = logging.getLogger(__name__)
 
-# Mock数据库类（用于示例）
+# Mock Database class for demonstration purposes
 class Database:
-    """Mock数据库类用于演示存储功能"""
+    """Mock database class for demonstration purposes"""
     
     @classmethod
     async def connect(cls) -> "Database":
-        """连接到数据库"""
-        logger.info("数据库连接已建立")
+        """Connect to database"""
+        logger.info("Database connection established")
         return cls()
     
     async def disconnect(self) -> None:
-        """断开数据库连接"""
-        logger.info("数据库连接已断开")
+        """Disconnect from database"""
+        logger.info("Database connection closed")
     
     async def save_conversation(self, conversation: ConversationRecord) -> str:
-        """保存对话记录（模拟）"""
-        logger.info(f"保存对话记录: {conversation.id}")
+        """Save conversation record (mock implementation)"""
+        logger.info(f"Saving conversation: {conversation.id}")
         return conversation.id
     
     async def search_conversations(self, query: str, limit: int = 10) -> list:
-        """搜索对话记录（模拟）"""
-        logger.info(f"搜索查询: '{query}', 限制: {limit}")
+        """Search conversation records (mock implementation)"""
+        logger.info(f"Search query: '{query}', limit: {limit}")
         return [
             {
                 "id": "conv_20240115_001",
-                "title": f"关于'{query}'的解决方案",
-                "snippet": f"这是一个关于{query}的详细解释和代码示例...",
+                "title": f"Solution for '{query}'",
+                "snippet": f"This is a detailed explanation and code example for {query}...",
                 "match_score": 0.95,
                 "created_at": "2024-01-15T10:30:00Z",
                 "tags": [query.lower(), "programming"],
@@ -70,80 +67,246 @@ class Database:
 
 @dataclass
 class AppContext:
-    """应用上下文，包含数据库连接等资源"""
+    """Application context containing database connections and resources"""
     db: Database
     storage_paths: StoragePaths
     file_manager: FileManager
     save_conversation_tool: SaveConversationTool
-    extract_solutions_tool: ExtractSolutionsTool
     search_knowledge_tool: SearchKnowledgeTool
     inject_context_tool: InjectContextTool
 
 @asynccontextmanager
-async def app_lifespan(server: FastMCP):
-    """
-    管理应用生命周期
+async def app_lifespan(_: FastMCP):
+    """Manage application lifecycle with resource initialization and cleanup"""
+    logger.info("Starting Synapse MCP Server...")
     
-    在服务器启动时初始化资源，关闭时清理资源
-    """
-    logger.info("正在启动 Synapse MCP 服务器...")
-    
-    # 初始化资源
     try:
-        # 初始化存储系统
+        # Initialize storage system
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, initialize_synapse_storage)
         
-        # 连接数据库
+        # Connect to database
         db = await Database.connect()
         
-        # 创建存储路径管理器
+        # Create resource managers
         storage_paths = StoragePaths()
-        
-        # 创建文件管理器
         file_manager = FileManager(storage_paths)
         
-        # 创建保存对话工具
+        # Create tool instances
         save_conversation_tool = SaveConversationTool(storage_paths)
-        
-        # 创建解决方案提取工具
-        extract_solutions_tool = ExtractSolutionsTool(storage_paths)
-        
-        # 创建搜索知识工具
         search_knowledge_tool = SearchKnowledgeTool(storage_paths, file_manager)
-        
-        # 创建上下文注入工具
         inject_context_tool = InjectContextTool(storage_paths, file_manager, search_knowledge_tool)
         
-        # 创建应用上下文
+        # Create application context
         app_context = AppContext(
             db=db, 
             storage_paths=storage_paths,
             file_manager=file_manager,
             save_conversation_tool=save_conversation_tool,
-            extract_solutions_tool=extract_solutions_tool,
             search_knowledge_tool=search_knowledge_tool,
             inject_context_tool=inject_context_tool
         )
         
-        logger.info("Synapse MCP 服务器启动成功")
-        
+        logger.info("Synapse MCP Server started successfully")
         yield app_context
         
     except Exception as e:
-        logger.error(f"服务器启动失败: {str(e)}")
+        logger.error(f"Server startup failed: {str(e)}")
         raise
     finally:
-        # 清理资源
-        logger.info("正在关闭 Synapse MCP 服务器...")
+        # Cleanup resources
+        logger.info("Shutting down Synapse MCP Server...")
         if 'db' in locals():
             await db.disconnect()
-        logger.info("Synapse MCP 服务器已关闭")
+        logger.info("Synapse MCP Server shutdown complete")
 
-# 创建FastMCP服务器实例
+# Create FastMCP server instance
 mcp = FastMCP("synapse-mcp", lifespan=app_lifespan)
 
-# ==================== MCP工具实现 ====================
+# ==================== MCP Prompt Templates ====================
+
+@mcp.prompt(title="Conversation Analysis")
+def conversation_analysis_prompt(
+    title: str,
+    content: str,
+    focus: str = "comprehensive"
+) -> str:
+    """
+    Conversation analysis prompt template.
+    
+    Generates prompts for analyzing technical conversations to extract
+    summaries, tags, importance ratings, and other metadata.
+    
+    Args:
+        title: Conversation title
+        content: Conversation content
+        focus: Analysis focus ("comprehensive", "summary", "tags", "solutions")
+    
+    Returns:
+        str: Formatted analysis prompt
+    """
+    base_prompt = f"""Please analyze the following technical conversation and provide structured analysis results.
+
+## Conversation Information
+**Title**: {title}
+**Content**: 
+{content[:2000]}{'...' if len(content) > 2000 else ''}
+
+## Analysis Requirements
+Please provide the following analysis results (JSON format):
+
+```json
+{{
+    "summary": "Concise conversation summary (1-2 sentences)",
+    "tags": ["technical_tag1", "technical_tag2", "..."],
+    "importance": "Importance rating from 1-5",
+    "category": "Conversation category (e.g., problem-solving, learning, code-review)",
+    "has_solutions": "true/false",
+    "solution_indicators": ["Types of solutions included"]
+}}
+```
+
+## Analysis Focus"""
+    
+    if focus == "comprehensive":
+        return base_prompt + """
+- Comprehensive analysis: summary, tags, importance, category, solution identification
+- Identify tech stack, programming languages, frameworks
+- Evaluate educational value and practical utility
+- Detect reusable solutions"""
+    elif focus == "summary":
+        return base_prompt + """
+- Focus on generating accurate and concise summaries
+- Extract core technical points and conclusions"""
+    elif focus == "tags":
+        return base_prompt + """
+- Focus on extracting technical tags
+- Identify programming languages, frameworks, tools, concepts
+- Sort by relevance, maximum 10 tags"""
+    elif focus == "solutions":
+        return base_prompt + """
+- Focus on identifying reusable solutions
+- Detect code snippets, configuration examples, best practices
+- Evaluate solution generalizability"""
+    else:
+        return base_prompt
+
+@mcp.prompt(title="Solution Extraction")  
+def solution_extraction_prompt(
+    conversation_title: str,
+    conversation_content: str,
+    analysis_summary: str = "",
+    extraction_type: str = "all"
+) -> str:
+    """
+    Solution extraction prompt template.
+    
+    Based on conversation content and existing analysis, extract reusable solutions.
+    
+    Args:
+        conversation_title: Conversation title
+        conversation_content: Complete conversation content
+        analysis_summary: Existing analysis summary
+        extraction_type: Extraction type ("all", "code", "approaches", "patterns")
+    
+    Returns:
+        str: Formatted solution extraction prompt
+    """
+    base_prompt = f"""请从以下技术对话中提取可重用的解决方案。
+
+## 对话信息
+**标题**: {conversation_title}
+**分析摘要**: {analysis_summary}
+
+**完整内容**:
+{conversation_content[:3000]}{'...' if len(conversation_content) > 3000 else ''}
+
+## 提取要求
+请提供以下格式的解决方案（JSON格式）：
+
+```json
+{{
+    "solutions": [
+        {{
+            "type": "code|approach|pattern|configuration",
+            "title": "解决方案标题",
+            "description": "详细描述和使用场景",
+            "content": "具体的解决方案内容",
+            "language": "编程语言（如果是代码）",
+            "reusability_score": 0.0-1.0的可重用性评分,
+            "tags": ["相关标签"],
+            "prerequisites": ["前置条件或依赖"]
+        }}
+    ]
+}}
+```
+
+## 提取重点"""
+    
+    if extraction_type == "code":
+        return base_prompt + """
+- 重点提取代码片段和函数
+- 包含完整的可执行代码
+- 添加必要的注释和说明"""
+    elif extraction_type == "approaches":
+        return base_prompt + """
+- 重点提取解决思路和方法
+- 包含步骤化的解决流程
+- 适用于概念性问题的解决"""
+    elif extraction_type == "patterns":
+        return base_prompt + """
+- 重点提取设计模式和最佳实践
+- 包含可复制的架构模式
+- 适用于系统设计和架构决策"""
+    else:
+        return base_prompt + """
+- 全面提取所有类型的解决方案
+- 包含代码、方法、模式、配置等
+- 按重要性和可重用性排序"""
+
+@mcp.prompt(title="内容摘要")
+def content_summary_prompt(
+    title: str,
+    content: str,
+    length: str = "medium"
+) -> str:
+    """
+    内容摘要提示词模板
+    
+    生成不同长度的内容摘要。
+    
+    Args:
+        title: 内容标题
+        content: 内容正文
+        length: 摘要长度 ("short", "medium", "long")
+    
+    Returns:
+        str: 格式化的摘要提示词
+    """
+    length_specs = {
+        "short": "1句话，最多20字",
+        "medium": "2-3句话，50-100字", 
+        "long": "1段话，100-200字"
+    }
+    
+    spec = length_specs.get(length, length_specs["medium"])
+    
+    return f"""请为以下内容生成{spec}的摘要。
+
+## 原始内容
+**标题**: {title}
+**正文**: 
+{content[:1500]}{'...' if len(content) > 1500 else ''}
+
+## 摘要要求
+- 长度: {spec}
+- 重点: 核心信息和关键要点
+- 风格: 简洁清晰，技术准确
+- 格式: 纯文本，无需JSON包装
+
+请直接输出摘要内容："""
+
+# ==================== MCP Tool Implementations ====================
 
 @mcp.tool()
 async def save_conversation(
@@ -153,73 +316,89 @@ async def save_conversation(
     category: str = None, 
     importance: int = None,
     check_duplicates: bool = True,
+    # AI分析结果参数（由客户端通过prompt获得后传入）
+    ai_summary: str = None,
+    ai_tags: list[str] = None,
+    ai_importance: int = None,
+    ai_category: str = None,
+    ai_solutions: list[dict] = None,
     ctx: Context = None
 ) -> dict:
     """
-    保存AI对话记录到知识库中，支持智能标签提取、摘要生成和重复检测
+    Save AI conversation records to knowledge base with AI analysis support.
     
-    这个工具提供完整的对话保存功能：
-    - 自动清理和格式化对话内容
-    - 智能提取编程语言、技术栈等标签
-    - 基于内容生成有意义的摘要
-    - 自动评估对话重要性等级
-    - 检测并提醒重复对话
-    - 更新搜索索引以支持快速查询
+    This tool focuses on data storage and management:
+    - Accept user-specified or AI-analyzed metadata
+    - Clean and format conversation content
+    - Detect and notify duplicate conversations
+    - Update search indexes for fast queries
+    
+    Correct usage:
+    1. First call conversation_analysis_prompt to get AI analysis
+    2. Pass AI analysis results to this tool for saving
     
     Args:
-        title: 对话主题标题（必需）
-        content: 完整的对话内容（必需）
-        tags: 用户自定义标签列表（可选，将与自动提取的标签合并）
-        category: 对话分类（可选，如不指定将自动推断）
-        importance: 重要程度 1-5（可选，如不指定将自动评估）
-        check_duplicates: 是否检查重复对话（默认True）
-        ctx: MCP上下文对象
+        title: Conversation topic title (required)
+        content: Complete conversation content (required)
+        tags: User-defined tag list (optional)
+        category: User-specified conversation category (optional)
+        importance: User-specified importance level 1-5 (optional)
+        check_duplicates: Whether to check for duplicate conversations (default True)
+        ai_summary: AI-generated summary (obtained via prompt)
+        ai_tags: AI-extracted tag list (obtained via prompt)
+        ai_importance: AI-assessed importance (obtained via prompt)
+        ai_category: AI-inferred category (obtained via prompt)
+        ai_solutions: AI-extracted solution list (obtained via prompt)
+        ctx: MCP context object
         
     Returns:
-        dict: 详细的保存结果信息，包括：
-            - success: 保存是否成功
-            - conversation: 保存的对话详细信息
-            - duplicates_found: 发现的重复对话数量
-            - duplicate_ids: 重复对话的ID列表
-            - storage_path: 文件存储路径
+        dict: Detailed save result information including:
+            - success: Whether save was successful
+            - conversation: Saved conversation details
+            - duplicates_found: Number of duplicate conversations found
+            - duplicate_ids: List of duplicate conversation IDs
+            - storage_path: File storage path
     """
     try:
         if ctx:
-            await ctx.info(f"开始保存对话: {title}")
+            await ctx.info(f"Starting conversation save: {title}")
         
-        # 基础参数验证
+        # Basic parameter validation
         if not title or not title.strip():
-            raise ValueError("对话标题不能为空")
+            raise ValueError("Conversation title cannot be empty")
         
         if not content or not content.strip():
-            raise ValueError("对话内容不能为空")
+            raise ValueError("Conversation content cannot be empty")
         
         if importance is not None and (importance < 1 or importance > 5):
-            raise ValueError("重要性等级必须在1-5之间")
+            raise ValueError("Importance level must be between 1-5")
         
-        # 获取保存对话工具实例
+        # Get save conversation tool instance
         save_tool = None
-        if ctx and hasattr(ctx.request_context, 'lifespan_context'):
+        if ctx and hasattr(ctx, 'request_context') and hasattr(ctx.request_context, 'lifespan_context'):
             save_tool = ctx.request_context.lifespan_context.save_conversation_tool
         
         if not save_tool:
-            # 如果无法获取工具实例，创建一个临时实例
-            from synapse.storage.paths import StoragePaths
-            storage_paths = StoragePaths()
-            save_tool = SaveConversationTool(storage_paths)
-            logger.warning("使用临时SaveConversationTool实例")
+            raise RuntimeError("无法获取SaveConversationTool实例，请检查服务器配置")
         
         if ctx:
             await ctx.info("正在处理对话内容...")
         
         # 使用SaveConversationTool进行保存
-        result = save_tool.save_conversation(
+        result = await save_tool.save_conversation(
             title=title.strip(),
             content=content.strip(),
             user_tags=tags,
             user_category=category,
             user_importance=importance,
-            check_duplicates=check_duplicates
+            check_duplicates=check_duplicates,
+            # 传递AI分析结果
+            ai_summary=ai_summary,
+            ai_tags=ai_tags,
+            ai_importance=ai_importance,
+            ai_category=ai_category,
+            ai_solutions=ai_solutions,
+            ctx=ctx
         )
         
         # 检查保存结果
@@ -253,7 +432,7 @@ async def save_conversation(
             "auto_generated": {
                 "tags_count": conversation_info.get("auto_tags_count", 0),
                 "user_tags_count": conversation_info.get("user_tags_count", 0),
-                "code_blocks_found": conversation_info.get("code_blocks_count", 0)
+                "solutions_found": conversation_info.get("solutions_count", 0)
             },
             "duplicate_detection": {
                 "checked": check_duplicates,
@@ -321,17 +500,11 @@ async def search_knowledge(
         
         # 获取搜索知识工具实例
         search_tool = None
-        if ctx and hasattr(ctx.request_context, 'lifespan_context'):
+        if ctx and hasattr(ctx, 'request_context') and hasattr(ctx.request_context, 'lifespan_context'):
             search_tool = ctx.request_context.lifespan_context.search_knowledge_tool
         
         if not search_tool:
-            # 如果无法获取工具实例，创建一个临时实例
-            from synapse.storage.paths import StoragePaths
-            from synapse.storage.file_manager import FileManager
-            storage_paths = StoragePaths()
-            file_manager = FileManager(storage_paths)
-            search_tool = SearchKnowledgeTool(storage_paths, file_manager)
-            logger.warning("使用临时SearchKnowledgeTool实例")
+            raise RuntimeError("无法获取SearchKnowledgeTool实例，请检查服务器配置")
         
         if ctx:
             await ctx.info("执行三层搜索策略...")
@@ -414,145 +587,6 @@ async def search_knowledge(
             "search_engine": "synapse_intelligent_search_v1.0"
         }
 
-@mcp.tool()
-async def extract_solutions(
-    conversation_id: str,
-    extract_type: str = "all",
-    auto_tag: bool = True,
-    min_reusability_score: float = 0.3,
-    save_solutions: bool = False,
-    ctx: Context = None
-) -> dict:
-    """
-    从对话记录中智能提取可重用的代码片段、方法和设计模式
-    
-    这个工具使用先进的文本分析和机器学习技术，从对话记录中自动识别
-    和提取有价值的解决方案。支持多种类型的内容提取和质量评估。
-    
-    Args:
-        conversation_id: 要提取解决方案的对话ID（必需）
-        extract_type: 提取类型 ("code", "approach", "pattern", "all")
-        auto_tag: 是否自动识别和分类标签（默认True）
-        min_reusability_score: 最小可重用性阈值 0.0-1.0（默认0.3）
-        save_solutions: 是否将提取的解决方案保存到文件系统（默认False）
-        ctx: MCP上下文对象
-        
-    Returns:
-        dict: 详细的提取结果，包括：
-            - solutions: 提取的解决方案列表
-            - statistics: 提取统计信息
-            - extraction_summary: 人性化的提取摘要
-    """
-    try:
-        if ctx:
-            await ctx.info(f"开始智能提取对话 {conversation_id} 中的解决方案")
-        
-        # 基础参数验证
-        if not conversation_id or not conversation_id.strip():
-            raise ValueError("对话ID不能为空")
-        
-        if extract_type not in ["code", "approach", "pattern", "all"]:
-            raise ValueError("提取类型必须是 'code', 'approach', 'pattern' 或 'all'")
-        
-        if not (0.0 <= min_reusability_score <= 1.0):
-            raise ValueError("可重用性阈值必须在0.0-1.0之间")
-        
-        # 获取解决方案提取工具实例
-        extract_tool = None
-        if ctx and hasattr(ctx.request_context, 'lifespan_context'):
-            extract_tool = ctx.request_context.lifespan_context.extract_solutions_tool
-        
-        if not extract_tool:
-            # 如果无法获取工具实例，创建一个临时实例
-            from synapse.storage.paths import StoragePaths
-            storage_paths = StoragePaths()
-            extract_tool = ExtractSolutionsTool(storage_paths)
-            logger.warning("使用临时ExtractSolutionsTool实例")
-        
-        if ctx:
-            await ctx.info(f"开始分析对话内容，提取类型: {extract_type}")
-            if min_reusability_score > 0.3:
-                await ctx.info(f"使用较高的质量阈值: {min_reusability_score}")
-        
-        # 使用ExtractSolutionsTool进行智能提取
-        result = extract_tool.extract_solutions(
-            conversation_id=conversation_id.strip(),
-            extract_type=extract_type,
-            auto_tag=auto_tag,
-            min_reusability_score=min_reusability_score,
-            save_solutions=save_solutions
-        )
-        
-        # 检查提取结果
-        if not result.get("success", False):
-            error_msg = result.get("error", "未知错误")
-            raise RuntimeError(f"提取失败: {error_msg}")
-        
-        solutions_count = result.get("total_extracted", 0)
-        statistics = result.get("statistics", {})
-        
-        if ctx:
-            await ctx.info(f"智能提取完成，找到 {solutions_count} 个高质量解决方案")
-            
-            # 提供详细的统计信息
-            if statistics:
-                code_blocks = statistics.get("code_blocks_found", 0)
-                processing_time = statistics.get("processing_time_ms", 0)
-                
-                if code_blocks > 0:
-                    await ctx.info(f"发现 {code_blocks} 个代码块")
-                
-                await ctx.info(f"处理时间: {processing_time:.0f}ms")
-                
-                # 报告质量过滤情况
-                raw_extracted = statistics.get("raw_solutions_extracted", 0)
-                after_quality = statistics.get("after_quality_filter", 0)
-                if raw_extracted > after_quality:
-                    await ctx.info(f"质量过滤：{raw_extracted} → {after_quality} 个解决方案")
-                
-                # 报告保存情况
-                if save_solutions:
-                    saved_count = statistics.get("solutions_saved", 0)
-                    await ctx.info(f"已保存 {saved_count} 个解决方案到文件系统")
-        
-        # 构建返回结果（保持与原API兼容，同时提供更多信息）
-        return {
-            # 基本兼容信息
-            "solutions": result.get("solutions", []),
-            "conversation_id": conversation_id,
-            "extract_type": extract_type,
-            "total_extracted": solutions_count,
-            "auto_tag_enabled": auto_tag,
-            
-            # 扩展信息
-            "extraction_summary": result.get("extraction_summary", ""),
-            "statistics": statistics,
-            "quality_settings": {
-                "min_reusability_score": min_reusability_score,
-                "auto_tag": auto_tag,
-                "save_solutions": save_solutions
-            },
-            "success": True
-        }
-        
-    except Exception as e:
-        error_msg = str(e)
-        if ctx:
-            await ctx.error(f"解决方案提取失败: {error_msg}")
-        
-        logger.error(f"解决方案提取失败 - 对话ID: {conversation_id}, 错误: {error_msg}", exc_info=True)
-        
-        # 返回错误信息而不是抛出异常，让调用方能够处理
-        return {
-            "success": False,
-            "error": error_msg,
-            "error_type": type(e).__name__,
-            "conversation_id": conversation_id,
-            "extract_type": extract_type,
-            "solutions": [],
-            "total_extracted": 0,
-            "auto_tag_enabled": auto_tag
-        }
 
 @mcp.tool()
 async def inject_context(
@@ -610,19 +644,11 @@ async def inject_context(
         
         # 获取上下文注入工具实例
         inject_tool = None
-        if ctx and hasattr(ctx.request_context, 'lifespan_context'):
+        if ctx and hasattr(ctx, 'request_context') and hasattr(ctx.request_context, 'lifespan_context'):
             inject_tool = ctx.request_context.lifespan_context.inject_context_tool
         
         if not inject_tool:
-            # 如果无法获取工具实例，创建一个临时实例
-            from synapse.storage.paths import StoragePaths
-            from synapse.storage.file_manager import FileManager
-            from synapse.tools.search_knowledge import SearchKnowledgeTool
-            storage_paths = StoragePaths()
-            file_manager = FileManager(storage_paths)
-            search_tool = SearchKnowledgeTool(storage_paths, file_manager)
-            inject_tool = InjectContextTool(storage_paths, file_manager, search_tool)
-            logger.warning("使用临时InjectContextTool实例")
+            raise RuntimeError("无法获取InjectContextTool实例，请检查服务器配置")
         
         if ctx:
             await ctx.info("执行智能相关性分析...")
@@ -817,16 +843,16 @@ async def main():
 
 def sync_main():
     """
-    同步版本的主入口点，用于兼容性
+    Synchronous version of main entry point for compatibility.
     
-    这个函数提供了一个同步接口来启动异步服务器。
+    This function provides a synchronous interface to start the async server.
     """
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\n服务器已停止")
+        print("\nServer stopped")
     except Exception as e:
-        print(f"服务器启动失败: {str(e)}")
+        print(f"Server startup failed: {str(e)}")
         sys.exit(1)
 
 if __name__ == "__main__":
