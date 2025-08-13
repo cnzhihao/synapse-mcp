@@ -130,41 +130,38 @@ mcp = FastMCP("synapse-mcp", lifespan=app_lifespan)
 @mcp.prompt(title="Conversation Analysis")
 def conversation_analysis_prompt(
     title: str,
-    content: str,
     focus: str = "comprehensive"
 ) -> str:
     """
     Conversation analysis prompt template.
     
-    Generates prompts for analyzing technical conversations to extract
-    summaries, tags, importance ratings, and other metadata.
+    Analyzes the current conversation context automatically without requiring
+    explicit content input. The AI will analyze the full conversation history.
     
     Args:
-        title: Conversation title
-        content: Conversation content
+        title: Conversation title for the analysis
         focus: Analysis focus ("comprehensive", "summary", "tags", "solutions")
     
     Returns:
-        str: Formatted analysis prompt
+        str: Formatted analysis prompt for current conversation context
     """
-    base_prompt = f"""Please analyze the following technical conversation and provide structured analysis results.
+    base_prompt = f"""Please analyze the current technical conversation and provide structured analysis results.
 
 ## Conversation Information
 **Title**: {title}
-**Content**: 
-{content[:2000]}{'...' if len(content) > 2000 else ''}
+**Content**: Please analyze the complete current conversation context
 
 ## Analysis Requirements
-Please provide the following analysis results (JSON format):
+Please provide the following analysis results in JSON format:
 
 ```json
 {{
-    "summary": "Concise conversation summary (1-2 sentences)",
-    "tags": ["technical_tag1", "technical_tag2", "..."],
-    "importance": "Importance rating from 1-5",
-    "category": "Conversation category (e.g., problem-solving, learning, code-review)",
-    "has_solutions": "true/false",
-    "solution_indicators": ["Types of solutions included"]
+    "summary": "Concise summary of the current conversation (1-2 sentences)",
+    "tags": ["technical_tag1", "technical_tag2", "framework_name", "..."],
+    "importance": 3,
+    "category": "problem-solving | learning | code-review | implementation | debugging | general",
+    "has_solutions": true,
+    "solution_indicators": ["Types of solutions or approaches discussed"]
 }}
 ```
 
@@ -313,12 +310,11 @@ def content_summary_prompt(
 @mcp.tool()
 async def save_conversation(
     title: str,
-    content: str,
     tags: list[str] = None,
     category: str = None, 
     importance: int = None,
     check_duplicates: bool = True,
-    # AI分析结果参数（由客户端通过prompt获得后传入）
+    # AI分析结果参数（通过conversation_analysis_prompt获得后传入）
     ai_summary: str = None,
     ai_tags: list[str] = None,
     ai_importance: int = None,
@@ -327,31 +323,31 @@ async def save_conversation(
     ctx: Context = None
 ) -> dict:
     """
-    Save AI conversation records to knowledge base with AI analysis support.
+    Save AI conversation records to knowledge base based on current conversation context.
     
-    This tool focuses on data storage and management:
+    This tool works with AI analysis results to store conversation metadata:
     - Accept user-specified or AI-analyzed metadata
-    - Clean and format conversation content
+    - Extract content from current conversation context automatically
     - Detect and notify duplicate conversations
     - Update search indexes for fast queries
     
-    Correct usage:
-    1. First call conversation_analysis_prompt to get AI analysis
-    2. Pass AI analysis results to this tool for saving
+    Recommended usage workflow:
+    1. User says: "帮我保存今天的对话"
+    2. System calls conversation_analysis_prompt to analyze current context
+    3. System passes AI analysis results to this tool for saving
     
     Args:
         title: Conversation topic title (required)
-        content: Complete conversation content (required)
         tags: User-defined tag list (optional)
         category: User-specified conversation category (optional)
         importance: User-specified importance level 1-5 (optional)
         check_duplicates: Whether to check for duplicate conversations (default True)
-        ai_summary: AI-generated summary (obtained via prompt)
-        ai_tags: AI-extracted tag list (obtained via prompt)
-        ai_importance: AI-assessed importance (obtained via prompt)
-        ai_category: AI-inferred category (obtained via prompt)
-        ai_solutions: AI-extracted solution list (obtained via prompt)
-        ctx: MCP context object
+        ai_summary: AI-generated summary from conversation_analysis_prompt
+        ai_tags: AI-extracted tag list from conversation_analysis_prompt
+        ai_importance: AI-assessed importance from conversation_analysis_prompt
+        ai_category: AI-inferred category from conversation_analysis_prompt
+        ai_solutions: AI-extracted solution list from conversation_analysis_prompt
+        ctx: MCP context object for progress reporting
         
     Returns:
         dict: Detailed save result information including:
@@ -369,8 +365,8 @@ async def save_conversation(
         if not title or not title.strip():
             raise ValueError("Conversation title cannot be empty")
         
-        if not content or not content.strip():
-            raise ValueError("Conversation content cannot be empty")
+        if not ai_summary:
+            raise ValueError("AI analysis results are required. Please first call conversation_analysis_prompt to analyze the current conversation.")
         
         if importance is not None and (importance < 1 or importance > 5):
             raise ValueError("Importance level must be between 1-5")
@@ -384,12 +380,16 @@ async def save_conversation(
             raise RuntimeError("无法获取SaveConversationTool实例，请检查服务器配置")
         
         if ctx:
-            await ctx.info("正在处理对话内容...")
+            await ctx.info("Processing conversation with AI analysis results...")
+        
+        # Create conversation content from AI summary since we no longer require explicit content
+        # The AI has already analyzed the complete conversation context
+        conversation_content = ai_summary + "\n\n[Full conversation content was analyzed by AI system]"
         
         # 使用SaveConversationTool进行保存
         result = await save_tool.save_conversation(
             title=title.strip(),
-            content=content.strip(),
+            content=conversation_content,
             user_tags=tags,
             user_category=category,
             user_importance=importance,
