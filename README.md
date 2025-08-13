@@ -75,7 +75,7 @@ uv run mcp dev src/synapse/server.py
   "mcpServers": {
     "synapse": {
       "command": "uv",
-      "args": ["--directory", "/Users/zhcnzhihao/cc-course/synapse-mcp", "run", "mcp", "run", "/Users/zhcnzhihao/cc-course/synapse-mcp/src/synapse/server.py"]
+      "args": ["--directory", "/path/to/synapse-mcp", "run", "mcp", "run", "/path/to/synapse-mcp/src/synapse/server.py"]
       }
   }
 }
