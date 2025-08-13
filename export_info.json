@@ -1,0 +1,23 @@
+{
+  "exported_at": "2025-08-13T16:31:25.324897",
+  "source_paths": {
+    "data": "/Users/cnzhihao/Library/Application Support/synapse-mcp",
+    "config": "/Users/cnzhihao/Library/Application Support/synapse-mcp",
+    "cache": "/Users/cnzhihao/Library/Caches/synapse-mcp",
+    "conversations": "/Users/cnzhihao/Library/Application Support/synapse-mcp/conversations",
+    "solutions": "/Users/cnzhihao/Library/Application Support/synapse-mcp/solutions",
+    "indexes": "/Users/cnzhihao/Library/Application Support/synapse-mcp/indexes",
+    "logs": "/Users/cnzhihao/Library/Application Support/synapse-mcp/logs",
+    "backups": "/Users/cnzhihao/Library/Application Support/synapse-mcp/backups"
+  },
+  "statistics": {
+    "total_conversations": 15,
+    "total_solutions": 0,
+    "total_files": 15,
+    "total_size_bytes": 10744,
+    "disk_usage_mb": 0.01024627685546875,
+    "avg_file_size_kb": 0.6994791666666667,
+    "last_updated": "2025-08-13 16:31:25.324990"
+  },
+  "include_backups": false
+}

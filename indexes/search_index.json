@@ -1,0 +1,550 @@
+{
+  "keyword_index": {
+    "general": [
+      "conv_20250813_44d",
+      "conv_20250813_84f",
+      "conv_20250813_a48",
+      "conv_20250813_002",
+      "conv_20250813_9c7",
+      "conv_20250813_637",
+      "conv_20250813_5fd",
+      "conv_20250813_1a8",
+      "conv_20250813_f6d"
+    ],
+    "一般对话": [
+      "conv_20250813_44d",
+      "conv_20250813_84f",
+      "conv_20250813_a48",
+      "conv_20250813_002",
+      "conv_20250813_9c7",
+      "conv_20250813_051",
+      "conv_20250813_637",
+      "conv_20250813_5fd",
+      "conv_20250813_1a8",
+      "conv_20250813_f6d"
+    ],
+    "测试": [
+      "conv_20250813_002",
+      "conv_20250813_051",
+      "conv_20250813_637",
+      "conv_20250813_84f",
+      "conv_20250813_f6d"
+    ],
+    "ai": [
+      "conv_20250813_002"
+    ],
+    "ai增强测试对话": [
+      "conv_20250813_002"
+    ],
+    "关于ai增强测试对话的技术讨论，内容长度57字符": [
+      "conv_20250813_002"
+    ],
+    "python异步编程问题": [
+      "conv_20250813_be1",
+      "conv_20250813_f6d"
+    ],
+    "asyncio": [
+      "conv_20250813_be1",
+      "conv_20250813_f6d"
+    ],
+    "关于python异步编程问题的技术讨论，内容长度324字符": [
+      "conv_20250813_f6d"
+    ],
+    "hooks": [
+      "conv_20250813_9e0",
+      "conv_20250813_618"
+    ],
+    "hooks使用问题的技术讨论，内容长度485字符": [
+      "conv_20250813_618"
+    ],
+    "react": [
+      "conv_20250813_9e0",
+      "conv_20250813_618"
+    ],
+    "关于react": [
+      "conv_20250813_618"
+    ],
+    "问题解决": [
+      "conv_20250813_be1",
+      "conv_20250813_618"
+    ],
+    "javascript": [
+      "conv_20250813_618"
+    ],
+    "hooks使用问题": [
+      "conv_20250813_618"
+    ],
+    "python异步编程最佳实践": [
+      "conv_20250813_44d"
+    ],
+    "关于python异步编程最佳实践的技术讨论，内容长度521字符": [
+      "conv_20250813_44d"
+    ],
+    "关于react性能优化技巧的技术讨论，内容长度563字符": [
+      "conv_20250813_a48"
+    ],
+    "react性能优化技巧": [
+      "conv_20250813_a48"
+    ],
+    "docker容器化部署问题": [
+      "conv_20250813_5fd"
+    ],
+    "关于docker容器化部署问题的技术讨论，内容长度214字符": [
+      "conv_20250813_5fd"
+    ],
+    "简单css问题": [
+      "conv_20250813_1a8"
+    ],
+    "关于简单css问题的技术讨论，内容长度9字符": [
+      "conv_20250813_1a8"
+    ],
+    "数据库索引优化策略": [
+      "conv_20250813_9c7"
+    ],
+    "关于数据库索引优化策略的技术讨论，内容长度332字符": [
+      "conv_20250813_9c7"
+    ],
+    "mcp验证测试": [
+      "conv_20250813_637",
+      "conv_20250813_84f"
+    ],
+    "验证": [
+      "conv_20250813_637",
+      "conv_20250813_84f"
+    ],
+    "关于mcp验证测试的技术讨论，内容长度14字符": [
+      "conv_20250813_637",
+      "conv_20250813_84f"
+    ],
+    "关于python异步编程的技术问答，包含asyncawait用法和最佳实践": [
+      "conv_20250813_be1"
+    ],
+    "python": [
+      "conv_20250813_33c",
+      "conv_20250813_be1",
+      "conv_20250813_051"
+    ],
+    "编程": [
+      "conv_20250813_be1"
+    ],
+    "异步编程": [
+      "conv_20250813_be1"
+    ],
+    "用户标签": [
+      "conv_20250813_be1"
+    ],
+    "代码示例": [
+      "conv_20250813_be1"
+    ],
+    "api": [
+      "conv_20250813_051"
+    ],
+    "简单测试对话": [
+      "conv_20250813_051"
+    ],
+    "关于简单测试对话的简短对话": [
+      "conv_20250813_051"
+    ],
+    "架构": [
+      "conv_20250813_1c1"
+    ],
+    "mcp": [
+      "conv_20250813_1c1"
+    ],
+    "关于mcp架构的重构讨论，从错误设计改为正确的mcp协议实现": [
+      "conv_20250813_1c1"
+    ],
+    "架构设计": [
+      "conv_20250813_1c1"
+    ],
+    "protocol": [
+      "conv_20250813_1c1"
+    ],
+    "重构": [
+      "conv_20250813_1c1"
+    ],
+    "mcp架构重构": [
+      "conv_20250813_1c1"
+    ],
+    "fastapi性能优化": [
+      "conv_20250813_33c"
+    ],
+    "性能优化": [
+      "conv_20250813_33c"
+    ],
+    "数据库": [
+      "conv_20250813_33c"
+    ],
+    "异步": [
+      "conv_20250813_33c"
+    ],
+    "fastapi": [
+      "conv_20250813_33c"
+    ],
+    "关于fastapi性能优化的技术讨论，涵盖异步处理和数据库优化": [
+      "conv_20250813_33c"
+    ],
+    "optimization": [
+      "conv_20250813_9e0"
+    ],
+    "详细讨论了react": [
+      "conv_20250813_9e0"
+    ],
+    "hook性能优化的核心概念，包括记忆化技术的应用和最佳实践": [
+      "conv_20250813_9e0"
+    ],
+    "memo": [
+      "conv_20250813_9e0"
+    ],
+    "usememo": [
+      "conv_20250813_9e0"
+    ],
+    "hook性能优化最佳实践": [
+      "conv_20250813_9e0"
+    ],
+    "usecallback": [
+      "conv_20250813_9e0"
+    ],
+    "学习": [
+      "conv_20250813_9e0"
+    ],
+    "performance": [
+      "conv_20250813_9e0"
+    ]
+  },
+  "tag_index": {
+    "general": [
+      "conv_20250813_44d",
+      "conv_20250813_84f",
+      "conv_20250813_a48",
+      "conv_20250813_002",
+      "conv_20250813_9c7",
+      "conv_20250813_637",
+      "conv_20250813_5fd",
+      "conv_20250813_1a8",
+      "conv_20250813_f6d"
+    ],
+    "测试": [
+      "conv_20250813_002",
+      "conv_20250813_051",
+      "conv_20250813_637",
+      "conv_20250813_84f",
+      "conv_20250813_f6d"
+    ],
+    "ai": [
+      "conv_20250813_002"
+    ],
+    "asyncio": [
+      "conv_20250813_be1",
+      "conv_20250813_f6d"
+    ],
+    "react": [
+      "conv_20250813_9e0",
+      "conv_20250813_618"
+    ],
+    "hooks": [
+      "conv_20250813_9e0",
+      "conv_20250813_618"
+    ],
+    "javascript": [
+      "conv_20250813_618"
+    ],
+    "验证": [
+      "conv_20250813_637",
+      "conv_20250813_84f"
+    ],
+    "python": [
+      "conv_20250813_33c",
+      "conv_20250813_be1",
+      "conv_20250813_051"
+    ],
+    "编程": [
+      "conv_20250813_be1"
+    ],
+    "异步编程": [
+      "conv_20250813_be1"
+    ],
+    "用户标签": [
+      "conv_20250813_be1"
+    ],
+    "代码示例": [
+      "conv_20250813_be1"
+    ],
+    "api": [
+      "conv_20250813_051"
+    ],
+    "架构": [
+      "conv_20250813_1c1"
+    ],
+    "重构": [
+      "conv_20250813_1c1"
+    ],
+    "protocol": [
+      "conv_20250813_1c1"
+    ],
+    "mcp": [
+      "conv_20250813_1c1"
+    ],
+    "性能优化": [
+      "conv_20250813_33c"
+    ],
+    "数据库": [
+      "conv_20250813_33c"
+    ],
+    "异步": [
+      "conv_20250813_33c"
+    ],
+    "fastapi": [
+      "conv_20250813_33c"
+    ],
+    "optimization": [
+      "conv_20250813_9e0"
+    ],
+    "usecallback": [
+      "conv_20250813_9e0"
+    ],
+    "memo": [
+      "conv_20250813_9e0"
+    ],
+    "usememo": [
+      "conv_20250813_9e0"
+    ],
+    "performance": [
+      "conv_20250813_9e0"
+    ]
+  },
+  "metadata_index": {
+    "conv_20250813_002": {
+      "title": "AI增强测试对话",
+      "category": "一般对话",
+      "importance": 3,
+      "created_at": "2025-08-13T10:30:32.964309",
+      "updated_at": "2025-08-13T10:30:32.964312",
+      "tags": [
+        "general",
+        "测试",
+        "ai"
+      ],
+      "summary": "关于AI增强测试对话的技术讨论，内容长度57字符",
+      "content_length": 57,
+      "solutions_count": 0
+    },
+    "conv_20250813_f6d": {
+      "title": "Python异步编程问题",
+      "category": "一般对话",
+      "importance": 3,
+      "created_at": "2025-08-13T10:38:07.420441",
+      "updated_at": "2025-08-13T10:38:07.420445",
+      "tags": [
+        "general",
+        "测试",
+        "asyncio"
+      ],
+      "summary": "关于Python异步编程问题的技术讨论，内容长度324字符",
+      "content_length": 324,
+      "solutions_count": 0
+    },
+    "conv_20250813_618": {
+      "title": "React Hooks使用问题",
+      "category": "问题解决",
+      "importance": 4,
+      "created_at": "2025-08-13T10:39:52.201401",
+      "updated_at": "2025-08-13T10:39:52.201403",
+      "tags": [
+        "react",
+        "hooks",
+        "javascript"
+      ],
+      "summary": "关于React Hooks使用问题的技术讨论，内容长度485字符",
+      "content_length": 485,
+      "solutions_count": 0
+    },
+    "conv_20250813_44d": {
+      "title": "Python异步编程最佳实践",
+      "category": "一般对话",
+      "importance": 3,
+      "created_at": "2025-08-13T10:42:43.348667",
+      "updated_at": "2025-08-13T10:42:43.348671",
+      "tags": [
+        "general"
+      ],
+      "summary": "关于Python异步编程最佳实践的技术讨论，内容长度521字符",
+      "content_length": 521,
+      "solutions_count": 0
+    },
+    "conv_20250813_a48": {
+      "title": "React性能优化技巧",
+      "category": "一般对话",
+      "importance": 3,
+      "created_at": "2025-08-13T10:42:49.369174",
+      "updated_at": "2025-08-13T10:42:49.369175",
+      "tags": [
+        "general"
+      ],
+      "summary": "关于React性能优化技巧的技术讨论，内容长度563字符",
+      "content_length": 563,
+      "solutions_count": 0
+    },
+    "conv_20250813_5fd": {
+      "title": "Docker容器化部署问题",
+      "category": "一般对话",
+      "importance": 3,
+      "created_at": "2025-08-13T10:42:52.379794",
+      "updated_at": "2025-08-13T10:42:52.379798",
+      "tags": [
+        "general"
+      ],
+      "summary": "关于Docker容器化部署问题的技术讨论，内容长度214字符",
+      "content_length": 214,
+      "solutions_count": 0
+    },
+    "conv_20250813_1a8": {
+      "title": "简单CSS问题",
+      "category": "一般对话",
+      "importance": 3,
+      "created_at": "2025-08-13T10:42:55.395057",
+      "updated_at": "2025-08-13T10:42:55.395059",
+      "tags": [
+        "general"
+      ],
+      "summary": "关于简单CSS问题的技术讨论，内容长度9字符",
+      "content_length": 9,
+      "solutions_count": 0
+    },
+    "conv_20250813_9c7": {
+      "title": "数据库索引优化策略",
+      "category": "一般对话",
+      "importance": 3,
+      "created_at": "2025-08-13T10:42:58.411504",
+      "updated_at": "2025-08-13T10:42:58.411559",
+      "tags": [
+        "general"
+      ],
+      "summary": "关于数据库索引优化策略的技术讨论，内容长度332字符",
+      "content_length": 332,
+      "solutions_count": 0
+    },
+    "conv_20250813_637": {
+      "title": "MCP验证测试",
+      "category": "一般对话",
+      "importance": 3,
+      "created_at": "2025-08-13T10:47:29.907345",
+      "updated_at": "2025-08-13T10:47:29.907348",
+      "tags": [
+        "general",
+        "验证",
+        "测试"
+      ],
+      "summary": "关于MCP验证测试的技术讨论，内容长度14字符",
+      "content_length": 14,
+      "solutions_count": 0
+    },
+    "conv_20250813_84f": {
+      "title": "MCP验证测试",
+      "category": "一般对话",
+      "importance": 3,
+      "created_at": "2025-08-13T10:48:50.615876",
+      "updated_at": "2025-08-13T10:48:50.615880",
+      "tags": [
+        "general",
+        "验证",
+        "测试"
+      ],
+      "summary": "关于MCP验证测试的技术讨论，内容长度14字符",
+      "content_length": 14,
+      "solutions_count": 0
+    },
+    "conv_20250813_be1": {
+      "title": "Python异步编程问题",
+      "category": "问题解决",
+      "importance": 4,
+      "created_at": "2025-08-13T11:17:24.023254",
+      "updated_at": "2025-08-13T11:17:24.023255",
+      "tags": [
+        "asyncio",
+        "python",
+        "编程",
+        "异步编程",
+        "用户标签",
+        "代码示例"
+      ],
+      "summary": "关于Python异步编程的技术问答，包含async/await用法和最佳实践",
+      "content_length": 52,
+      "solutions_count": 1
+    },
+    "conv_20250813_051": {
+      "title": "简单测试对话",
+      "category": "一般对话",
+      "importance": 3,
+      "created_at": "2025-08-13T11:17:24.026901",
+      "updated_at": "2025-08-13T11:17:24.026901",
+      "tags": [
+        "python",
+        "api",
+        "测试"
+      ],
+      "summary": "关于简单测试对话的简短对话",
+      "content_length": 44,
+      "solutions_count": 0
+    },
+    "conv_20250813_1c1": {
+      "title": "MCP架构重构",
+      "category": "架构设计",
+      "importance": 5,
+      "created_at": "2025-08-13T11:17:24.030261",
+      "updated_at": "2025-08-13T11:17:24.030261",
+      "tags": [
+        "架构",
+        "重构",
+        "protocol",
+        "mcp"
+      ],
+      "summary": "关于MCP架构的重构讨论，从错误设计改为正确的MCP协议实现",
+      "content_length": 34,
+      "solutions_count": 0
+    },
+    "conv_20250813_33c": {
+      "title": "FastAPI性能优化",
+      "category": "性能优化",
+      "importance": 4,
+      "created_at": "2025-08-13T11:17:24.033879",
+      "updated_at": "2025-08-13T11:17:24.033880",
+      "tags": [
+        "python",
+        "性能优化",
+        "数据库",
+        "异步",
+        "fastapi"
+      ],
+      "summary": "关于FastAPI性能优化的技术讨论，涵盖异步处理和数据库优化",
+      "content_length": 59,
+      "solutions_count": 0
+    },
+    "conv_20250813_9e0": {
+      "title": "React Hook性能优化最佳实践",
+      "category": "学习",
+      "importance": 3,
+      "created_at": "2025-08-13T14:57:30.448067",
+      "updated_at": "2025-08-13T14:57:30.448068",
+      "tags": [
+        "optimization",
+        "react",
+        "usecallback",
+        "memo",
+        "usememo",
+        "hooks",
+        "performance"
+      ],
+      "summary": "详细讨论了React Hook性能优化的核心概念，包括记忆化技术的应用和最佳实践",
+      "content_length": 83,
+      "solutions_count": 1
+    }
+  },
+  "stats": {
+    "total_conversations": 15,
+    "total_keywords": 60,
+    "total_tags": 27,
+    "last_updated": "2025-08-13T14:57:30.452243",
+    "index_version": "1.0"
+  }
+}

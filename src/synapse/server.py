@@ -15,6 +15,7 @@ Key Features:
 import asyncio
 import logging
 import json
+import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
@@ -30,6 +31,7 @@ from synapse.utils.logging_config import setup_logging
 from synapse.tools.save_conversation import SaveConversationTool
 from synapse.tools.search_knowledge import SearchKnowledgeTool
 from synapse.tools.inject_context import InjectContextTool
+from synapse.tools.extract_solutions import ExtractSolutionsTool
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +78,7 @@ class AppContext:
     save_conversation_tool: SaveConversationTool
     search_knowledge_tool: SearchKnowledgeTool
     inject_context_tool: InjectContextTool
+    extract_solutions_tool: ExtractSolutionsTool
 
 @asynccontextmanager
 async def app_lifespan(_: FastMCP):
@@ -98,6 +101,7 @@ async def app_lifespan(_: FastMCP):
         save_conversation_tool = SaveConversationTool(storage_paths)
         search_knowledge_tool = SearchKnowledgeTool(storage_paths, file_manager)
         inject_context_tool = InjectContextTool(storage_paths, file_manager, search_knowledge_tool)
+        extract_solutions_tool = ExtractSolutionsTool(storage_paths)
         
         # Create application context
         app_context = AppContext(
@@ -106,7 +110,8 @@ async def app_lifespan(_: FastMCP):
             file_manager=file_manager,
             save_conversation_tool=save_conversation_tool,
             search_knowledge_tool=search_knowledge_tool,
-            inject_context_tool=inject_context_tool
+            inject_context_tool=inject_context_tool,
+            extract_solutions_tool=extract_solutions_tool
         )
         
         logger.info("Synapse MCP Server started successfully")
@@ -189,121 +194,6 @@ Please provide the following analysis results in JSON format:
 - Evaluate solution generalizability"""
     else:
         return base_prompt
-
-@mcp.prompt(title="Solution Extraction")  
-def solution_extraction_prompt(
-    conversation_title: str,
-    conversation_content: str,
-    analysis_summary: str = "",
-    extraction_type: str = "all"
-) -> str:
-    """
-    Solution extraction prompt template.
-    
-    Based on conversation content and existing analysis, extract reusable solutions.
-    
-    Args:
-        conversation_title: Conversation title
-        conversation_content: Complete conversation content
-        analysis_summary: Existing analysis summary
-        extraction_type: Extraction type ("all", "code", "approaches", "patterns")
-    
-    Returns:
-        str: Formatted solution extraction prompt
-    """
-    base_prompt = f"""请从以下技术对话中提取可重用的解决方案。
-
-## 对话信息
-**标题**: {conversation_title}
-**分析摘要**: {analysis_summary}
-
-**完整内容**:
-{conversation_content[:3000]}{'...' if len(conversation_content) > 3000 else ''}
-
-## 提取要求
-请提供以下格式的解决方案（JSON格式）：
-
-```json
-{{
-    "solutions": [
-        {{
-            "type": "code|approach|pattern|configuration",
-            "title": "解决方案标题",
-            "description": "详细描述和使用场景",
-            "content": "具体的解决方案内容",
-            "language": "编程语言（如果是代码）",
-            "reusability_score": 0.0-1.0的可重用性评分,
-            "tags": ["相关标签"],
-            "prerequisites": ["前置条件或依赖"]
-        }}
-    ]
-}}
-```
-
-## 提取重点"""
-    
-    if extraction_type == "code":
-        return base_prompt + """
-- 重点提取代码片段和函数
-- 包含完整的可执行代码
-- 添加必要的注释和说明"""
-    elif extraction_type == "approaches":
-        return base_prompt + """
-- 重点提取解决思路和方法
-- 包含步骤化的解决流程
-- 适用于概念性问题的解决"""
-    elif extraction_type == "patterns":
-        return base_prompt + """
-- 重点提取设计模式和最佳实践
-- 包含可复制的架构模式
-- 适用于系统设计和架构决策"""
-    else:
-        return base_prompt + """
-- 全面提取所有类型的解决方案
-- 包含代码、方法、模式、配置等
-- 按重要性和可重用性排序"""
-
-@mcp.prompt(title="内容摘要")
-def content_summary_prompt(
-    title: str,
-    content: str,
-    length: str = "medium"
-) -> str:
-    """
-    内容摘要提示词模板
-    
-    生成不同长度的内容摘要。
-    
-    Args:
-        title: 内容标题
-        content: 内容正文
-        length: 摘要长度 ("short", "medium", "long")
-    
-    Returns:
-        str: 格式化的摘要提示词
-    """
-    length_specs = {
-        "short": "1句话，最多20字",
-        "medium": "2-3句话，50-100字", 
-        "long": "1段话，100-200字"
-    }
-    
-    spec = length_specs.get(length, length_specs["medium"])
-    
-    return f"""请为以下内容生成{spec}的摘要。
-
-## 原始内容
-**标题**: {title}
-**正文**: 
-{content[:1500]}{'...' if len(content) > 1500 else ''}
-
-## 摘要要求
-- 长度: {spec}
-- 重点: 核心信息和关键要点
-- 风格: 简洁清晰，技术准确
-- 格式: 纯文本，无需JSON包装
-
-请直接输出摘要内容："""
 
 # ==================== MCP Tool Implementations ====================
 
@@ -805,7 +695,7 @@ async def export_data(
         
         if ctx:
             await ctx.info(f"Found {storage_stats.total_conversations} conversations and {storage_stats.total_solutions} solutions")
-            await ctx.report_progress(0.2, "Starting data export...")
+            await ctx.report_progress(progress=0.2, message="Starting data export...")
         
         # Perform the export using FileManager
         export_success = file_manager.export_data(export_dir, include_backups=include_backups)
@@ -814,26 +704,11 @@ async def export_data(
             raise RuntimeError("Export operation failed - check file manager logs for details")
         
         if ctx:
-            await ctx.report_progress(0.8, "Calculating export statistics...")
-        
-        # Calculate export statistics
-        try:
-            exported_files = 0
-            exported_size = 0
-            
-            if export_dir.exists():
-                for file_path in export_dir.rglob("*"):
-                    if file_path.is_file() and file_path.name != "export_info.json":
-                        exported_files += 1
-                        exported_size += file_path.stat().st_size
-        except Exception as e:
-            logger.warning(f"Failed to calculate export statistics: {e}")
-            exported_files = -1
-            exported_size = -1
+            await ctx.report_progress(progress=0.8, message="Finalizing export...")
         
         if ctx:
-            await ctx.report_progress(1.0, "Export completed successfully")
-            await ctx.info(f"Exported {exported_files} files ({exported_size / (1024*1024):.2f} MB) to {export_dir}")
+            await ctx.report_progress(progress=1.0, message="Export completed successfully")
+            await ctx.info(f"Exported {storage_stats.total_files} files ({storage_stats.disk_usage_mb:.2f} MB) to {export_dir}")
         
         # Build comprehensive response
         result = {
@@ -843,9 +718,9 @@ async def export_data(
             "statistics": {
                 "total_conversations_exported": storage_stats.total_conversations,
                 "total_solutions_exported": storage_stats.total_solutions,
-                "total_files_exported": exported_files,
-                "total_size_bytes": exported_size,
-                "total_size_mb": round(exported_size / (1024*1024), 2) if exported_size > 0 else 0,
+                "total_files_exported": storage_stats.total_files,
+                "total_size_bytes": storage_stats.total_size_bytes,
+                "total_size_mb": round(storage_stats.disk_usage_mb, 2),
                 "include_backups": include_backups,
                 "include_cache": include_cache
             },
@@ -942,7 +817,7 @@ async def import_data(
         
         if ctx:
             await ctx.info("Validating import data structure...")
-            await ctx.report_progress(0.1, "Validating import data...")
+            await ctx.report_progress(progress=0.1, message="Validating import data...")
         
         # Validate import structure
         validation_results = {
@@ -1034,7 +909,7 @@ async def import_data(
             if create_backup:
                 if ctx:
                     await ctx.info("Creating pre-import backup...")
-                    await ctx.report_progress(0.3, "Creating backup...")
+                    await ctx.report_progress(progress=0.3, message="Creating backup...")
                 
                 try:
                     backup_timestamp = int(datetime.now().timestamp())
@@ -1053,7 +928,7 @@ async def import_data(
             
             if ctx:
                 await ctx.info(f"Starting import with merge mode: {merge_mode}")
-                await ctx.report_progress(0.5, "Importing data...")
+                await ctx.report_progress(progress=0.5, message="Importing data...")
             
             # Perform the import using FileManager
             import_success = file_manager.import_data(import_dir, merge_mode=merge_mode)
@@ -1062,13 +937,13 @@ async def import_data(
                 raise RuntimeError("Import operation failed - check file manager logs for details")
             
             if ctx:
-                await ctx.report_progress(0.9, "Finalizing import...")
+                await ctx.report_progress(progress=0.9, message="Finalizing import...")
             
             # Get post-import statistics
             post_import_stats = file_manager.get_storage_statistics()
             
             if ctx:
-                await ctx.report_progress(1.0, "Import completed successfully")
+                await ctx.report_progress(progress=1.0, message="Import completed successfully")
                 await ctx.info(f"Import completed - Total: {post_import_stats.total_conversations} conversations, {post_import_stats.total_solutions} solutions")
             
             # Build success response
@@ -1363,7 +1238,7 @@ async def backup_data(
         
         if ctx:
             await ctx.info(f"Creating backup: {backup_name}")
-            await ctx.report_progress(0.1, "Preparing backup...")
+            await ctx.report_progress(progress=0.1, message="Preparing backup...")
         
         # Get pre-backup statistics
         storage_stats = file_manager.get_storage_statistics()
@@ -1376,7 +1251,7 @@ async def backup_data(
         
         if ctx:
             await ctx.info(f"Backup location: {backup_path}")
-            await ctx.report_progress(0.3, "Creating backup directory...")
+            await ctx.report_progress(progress=0.3, message="Creating backup directory...")
         
         # Perform the backup
         backup_success = file_manager.export_data(backup_path, include_backups=False)
@@ -1385,7 +1260,7 @@ async def backup_data(
             raise RuntimeError("Backup operation failed - check file manager logs for details")
         
         if ctx:
-            await ctx.report_progress(0.8, "Calculating backup statistics...")
+            await ctx.report_progress(progress=0.8, message="Calculating backup statistics...")
         
         # Calculate backup statistics
         backup_stats = {
@@ -1434,7 +1309,7 @@ async def backup_data(
             logger.warning(f"Failed to save backup metadata: {e}")
         
         if ctx:
-            await ctx.report_progress(1.0, "Backup completed successfully")
+            await ctx.report_progress(progress=1.0, message="Backup completed successfully")
             await ctx.info(f"Backup created successfully: {backup_stats['files_backed_up']} files ({backup_stats['backup_size_mb']} MB)")
         
         result = {
@@ -1528,7 +1403,7 @@ async def restore_backup(
         
         if ctx:
             await ctx.info(f"Found backup at: {backup_path}")
-            await ctx.report_progress(0.1, "Verifying backup...")
+            await ctx.report_progress(progress=0.1, message="Verifying backup...")
         
         # Backup verification
         verification_results = {
@@ -1580,7 +1455,7 @@ async def restore_backup(
         if ctx:
             if verification_results["backup_valid"]:
                 await ctx.info(f"Backup verified - {verification_results['conversations_found']} conversations, {verification_results['solutions_found']} solutions")
-            await ctx.report_progress(0.3, "Creating pre-restore backup...")
+            await ctx.report_progress(progress=0.3, message="Creating pre-restore backup...")
         
         # Create pre-restore backup if requested
         restore_backup_info = None
@@ -1602,7 +1477,7 @@ async def restore_backup(
         
         if ctx:
             await ctx.info(f"Starting restore with mode: {restore_mode}")
-            await ctx.report_progress(0.5, "Restoring data...")
+            await ctx.report_progress(progress=0.5, message="Restoring data...")
         
         # Perform the restore using FileManager import
         restore_success = file_manager.import_data(backup_path, merge_mode=restore_mode)
@@ -1611,13 +1486,13 @@ async def restore_backup(
             raise RuntimeError("Restore operation failed - check file manager logs for details")
         
         if ctx:
-            await ctx.report_progress(0.9, "Finalizing restore...")
+            await ctx.report_progress(progress=0.9, message="Finalizing restore...")
         
         # Get post-restore statistics
         post_restore_stats = file_manager.get_storage_statistics()
         
         if ctx:
-            await ctx.report_progress(1.0, "Restore completed successfully")
+            await ctx.report_progress(progress=1.0, message="Restore completed successfully")
             await ctx.info(f"Restore completed - Total: {post_restore_stats.total_conversations} conversations, {post_restore_stats.total_solutions} solutions")
         
         # Build success response
@@ -1665,6 +1540,172 @@ async def restore_backup(
             "pre_restore_backup_created": create_restore_backup,
             "verification_results": verification_results if 'verification_results' in locals() else {},
             "summary": f"Restore failed: {error_msg}"
+        }
+
+@mcp.tool()
+async def extract_solutions(
+    conversation_id: str = None,
+    extract_type: str = "all",
+    min_reusability_score: float = 0.3,
+    save_solutions: bool = True,
+    overwrite_existing: bool = False,
+    ctx: Context = None
+) -> dict:
+    """
+    从已保存的对话记录中提取解决方案并单独保存
+    
+    这个工具从现有的对话记录中提取所有解决方案，进行质量评估和去重，
+    然后将高质量的解决方案保存到独立的solutions目录中，便于后续查找和重用。
+    
+    使用场景：
+    1. 批量提取所有对话中的解决方案
+    2. 从特定对话中提取解决方案
+    3. 按类型筛选解决方案（代码、方法、模式）
+    4. 质量筛选和去重处理
+    
+    Args:
+        conversation_id: 指定对话ID，为None时处理所有对话记录（可选）
+        extract_type: 提取类型筛选 ("code", "approach", "pattern", "all")
+        min_reusability_score: 最小可重用性分数阈值 (0.0-1.0)
+        save_solutions: 是否将解决方案保存到文件系统 (default: True)
+        overwrite_existing: 是否覆盖已存在的解决方案文件 (default: False)
+        ctx: MCP上下文对象
+        
+    Returns:
+        dict: 提取结果，包含解决方案列表、统计信息和保存状态
+        {
+            "success": bool,
+            "solutions": [...],
+            "total_extracted": int,
+            "conversations_processed": int,
+            "extraction_summary": str,
+            "statistics": {...},
+            "storage_info": {...}
+        }
+    """
+    try:
+        start_time = time.time()
+        
+        if ctx:
+            await ctx.info(f"开始解决方案提取任务")
+            if conversation_id:
+                await ctx.info(f"目标对话: {conversation_id}")
+            else:
+                await ctx.info("处理所有对话记录")
+        
+        # 参数验证
+        if extract_type not in ["code", "approach", "pattern", "all"]:
+            raise ValueError("extract_type必须是 'code', 'approach', 'pattern' 或 'all'")
+        
+        if not isinstance(min_reusability_score, (int, float)) or min_reusability_score < 0 or min_reusability_score > 1:
+            raise ValueError("min_reusability_score必须在0.0-1.0之间")
+        
+        # 获取提取解决方案工具实例
+        extract_tool = None
+        if ctx and hasattr(ctx, 'request_context') and hasattr(ctx.request_context, 'lifespan_context'):
+            extract_tool = ctx.request_context.lifespan_context.extract_solutions_tool
+        
+        if not extract_tool:
+            raise RuntimeError("无法获取ExtractSolutionsTool实例，请检查服务器配置")
+        
+        if ctx:
+            await ctx.info(f"使用参数: 类型={extract_type}, 最低质量={min_reusability_score}")
+        
+        # 执行解决方案提取
+        result = await extract_tool.extract_solutions(
+            conversation_id=conversation_id,
+            extract_type=extract_type,
+            min_reusability_score=min_reusability_score,
+            save_solutions=save_solutions,
+            overwrite_existing=overwrite_existing,
+            ctx=ctx
+        )
+        
+        # 检查提取结果
+        if not result.get("success", False):
+            error_msg = result.get("error", "未知错误")
+            raise RuntimeError(f"解决方案提取失败: {error_msg}")
+        
+        # 计算处理时间
+        processing_time = (time.time() - start_time) * 1000
+        result["statistics"]["processing_time_ms"] = round(processing_time, 2)
+        
+        total_solutions = result.get("total_extracted", 0)
+        conversations_processed = result.get("conversations_processed", 0)
+        
+        if ctx:
+            await ctx.info(f"提取完成: {total_solutions} 个解决方案来自 {conversations_processed} 个对话")
+            
+            if save_solutions:
+                files_created = len(result.get("storage_info", {}).get("files_created", []))
+                if files_created > 0:
+                    await ctx.info(f"已保存到 {files_created} 个文件")
+            
+            # 性能信息
+            if processing_time > 1000:  # > 1秒
+                await ctx.info(f"处理时间: {processing_time:.2f}ms")
+            else:
+                await ctx.info(f"处理高效: {processing_time:.2f}ms")
+        
+        # 增强返回结果格式
+        enhanced_result = {
+            # 基本兼容信息
+            "success": True,
+            "solutions": result.get("solutions", []),
+            "total_extracted": total_solutions,
+            "conversations_processed": conversations_processed,
+            "conversations_with_solutions": result.get("conversations_with_solutions", 0),
+            "extraction_summary": result.get("extraction_summary", ""),
+            
+            # 处理参数信息
+            "extraction_parameters": {
+                "conversation_id": conversation_id,
+                "extract_type": extract_type,
+                "min_reusability_score": min_reusability_score,
+                "save_solutions": save_solutions,
+                "overwrite_existing": overwrite_existing
+            },
+            
+            # 详细统计信息
+            "statistics": result.get("statistics", {}),
+            
+            # 存储信息
+            "storage_info": result.get("storage_info", {}),
+            
+            # 元数据
+            "processing_time_ms": round(processing_time, 2),
+            "extracted_at": datetime.now().isoformat(),
+            "extraction_engine": "synapse_solution_extractor_v1.0"
+        }
+        
+        return enhanced_result
+        
+    except Exception as e:
+        error_msg = str(e)
+        if ctx:
+            await ctx.error(f"解决方案提取失败: {error_msg}")
+        
+        logger.error(f"解决方案提取失败 - 对话: {conversation_id}, 错误: {error_msg}", exc_info=True)
+        
+        # 返回错误信息而不是抛出异常
+        return {
+            "success": False,
+            "error": error_msg,
+            "error_type": type(e).__name__,
+            "solutions": [],
+            "total_extracted": 0,
+            "conversations_processed": 0,
+            "extraction_summary": f"提取失败: {error_msg}",
+            "extraction_parameters": {
+                "conversation_id": conversation_id,
+                "extract_type": extract_type,
+                "min_reusability_score": min_reusability_score,
+                "save_solutions": save_solutions,
+                "overwrite_existing": overwrite_existing
+            },
+            "processing_time_ms": 0,
+            "extracted_at": datetime.now().isoformat(),
+            "extraction_engine": "synapse_solution_extractor_v1.0"
         }
 
 # ==================== 主入口函数 ====================

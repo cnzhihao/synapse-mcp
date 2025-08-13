@@ -1,0 +1,14 @@
+{
+  "id": "conv_20250813_9c7",
+  "title": "数据库索引优化策略",
+  "content": "我的PostgreSQL查询性能很慢：\n```sql SELECT u.name, COUNT(o.id) as order_count FROM users u LEFT JOIN orders o ON u.id = o.user_id WHERE u.created_at > '2024-01-01' AND u.status = 'active' GROUP BY u.id, u.name HAVING COUNT(o.id) > 5 ORDER BY order_count DESC LIMIT 100; ```\n这个查询涉及大表连接，执行时间超过30秒。 我已经在user_id上创建了索引，但效果不明显。 还需要添加哪些索引？查询是否需要优化？",
+  "summary": "关于数据库索引优化策略的技术讨论，内容长度332字符",
+  "tags": [
+    "general"
+  ],
+  "category": "一般对话",
+  "importance": 3,
+  "created_at": "2025-08-13T10:42:58.411504",
+  "updated_at": "2025-08-13T10:42:58.411559",
+  "solutions": []
+}
