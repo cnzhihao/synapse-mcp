@@ -23,7 +23,6 @@ from pathlib import Path
 from synapse.models.conversation import ConversationRecord, Solution
 from synapse.storage.file_manager import FileManager
 from synapse.storage.paths import StoragePaths
-from synapse.tools.search_indexer import SearchIndexer
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -170,7 +169,6 @@ class ExtractSolutionsTool:
         """
         self.storage_paths = storage_paths
         self.file_manager = FileManager(storage_paths)
-        self.search_indexer = SearchIndexer(storage_paths)
         self.extractor = SolutionExtractor()
         
         # 确保solutions目录存在

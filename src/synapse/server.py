@@ -364,31 +364,29 @@ async def search_knowledge(
     ctx: Context = None
 ) -> dict:
     """
-    在知识库中搜索相关的对话记录和解决方案
+    AI语义搜索：在知识库中搜索相关的对话记录和解决方案
     
-    使用智能三层搜索策略提供高质量的搜索结果：
-    1. 精确匹配层 - 基于索引的关键词精确匹配
-    2. 标签过滤层 - 基于技术标签的分类过滤  
-    3. 内容匹配层 - 基于内容的模糊匹配和相关性评分
-    
-    性能目标：响应时间 < 200ms，搜索准确率 > 80%
+    使用AI语义理解进行智能搜索，完全替换传统的关键词匹配：
+    1. 候选获取 - 获取所有对话并应用基础过滤条件
+    2. 智能分类 - 按重要性、时间、标签等维度组织候选数据
+    3. AI任务生成 - 为调用方AI生成清晰的语义匹配任务
     
     Args:
-        query: 搜索查询关键词（必需）
+        query: 搜索查询（支持自然语言）（必需）
         category: 内容分类过滤（可选）
         tags: 标签过滤列表（可选）
         time_range: 时间范围过滤 ("week", "month", "all")
         importance_min: 最小重要性等级 (1-5)
-        limit: 返回结果数量限制 (1-50)
-        include_content: 是否在结果中包含完整对话内容
+        limit: 期望返回结果数量 (1-50)
+        include_content: 是否包含内容预览
         ctx: MCP上下文对象
         
     Returns:
-        dict: 智能搜索结果，包含详细的相关性分数和统计信息
+        dict: AI语义搜索的结构化候选数据，包含AI任务指令
     """
     try:
         if ctx:
-            await ctx.info(f"开始智能搜索: '{query}'")
+            await ctx.info(f"开始AI语义搜索: '{query}'")
         
         # 获取搜索知识工具实例
         search_tool = None
@@ -399,9 +397,9 @@ async def search_knowledge(
             raise RuntimeError("无法获取SearchKnowledgeTool实例，请检查服务器配置")
         
         if ctx:
-            await ctx.info("执行三层搜索策略...")
+            await ctx.info("组织候选数据供AI语义匹配...")
         
-        # 使用SearchKnowledgeTool进行智能搜索
+        # 使用SearchKnowledgeTool进行AI语义搜索
         result = search_tool.search_knowledge(
             query=query.strip(),
             category=category,
@@ -416,59 +414,37 @@ async def search_knowledge(
         if not result:
             raise RuntimeError("搜索工具返回空结果")
         
-        search_time = result.get("search_time_ms", 0)
-        results_count = len(result.get("results", []))
+        processing_time = result.get("metadata", {}).get("processing_time_ms", 0)
+        total_candidates = result.get("total_candidates", 0)
         
         if ctx:
-            await ctx.info(f"搜索完成: 找到 {results_count} 个结果，耗时 {search_time:.2f}ms")
-            
-            # 提供详细的搜索统计信息
-            stats = result.get("statistics", {})
-            if stats:
-                candidates = stats.get("total_candidates", 0)
-                filtered = stats.get("after_filtering", 0)
-                if candidates > 0:
-                    await ctx.info(f"搜索统计: {candidates} 个候选 → {filtered} 个过滤结果")
-                
-                # 性能信息
-                if search_time > 100:
-                    await ctx.info(f"搜索耗时较长: {search_time:.2f}ms (目标<200ms)")
-                elif search_time < 50:
-                    await ctx.info(f"搜索性能良好: {search_time:.2f}ms")
+            await ctx.info(f"候选数据准备完成: {total_candidates} 个候选，耗时 {processing_time:.2f}ms")
+            await ctx.info("请查看AI任务指令进行语义匹配")
         
-        # 确保返回格式与原API兼容
-        return {
-            "results": result.get("results", []),
-            "total": result.get("total", 0),
-            "search_time_ms": round(search_time, 2),
-            "query": query,
-            "processed_query": result.get("processed_query", query),
-            "filters_applied": result.get("filters_applied", {
-                "category": category,
-                "tags": tags,
-                "time_range": time_range,
-                "importance_min": importance_min,
-                "limit": limit
-            }),
-            "search_statistics": result.get("statistics", {}),
-            "search_engine": "synapse_intelligent_search_v1.0"
-        }
+        # 直接返回AI语义搜索的结构化结果
+        return result
         
     except Exception as e:
         error_msg = str(e)
         if ctx:
-            await ctx.error(f"搜索失败: {error_msg}")
+            await ctx.error(f"AI语义搜索失败: {error_msg}")
         
-        logger.error(f"搜索失败 - 查询: '{query}', 错误: {error_msg}", exc_info=True)
+        logger.error(f"AI语义搜索失败 - 查询: '{query}', 错误: {error_msg}", exc_info=True)
         
-        # 返回错误信息而不是抛出异常，让调用方能够处理
+        # 返回错误信息
         return {
-            "results": [],
-            "total": 0,
-            "search_time_ms": 0,
+            "search_mode": "ai_semantic",
             "query": query,
             "error": error_msg,
             "error_type": type(e).__name__,
+            "total_candidates": 0,
+            "candidate_categories": {
+                "high_importance": [],
+                "recent_discussions": [],
+                "tagged_content": [],
+                "general_conversations": []
+            },
+            "ai_task": f"搜索失败: {error_msg}",
             "filters_applied": {
                 "category": category,
                 "tags": tags,
@@ -476,7 +452,11 @@ async def search_knowledge(
                 "importance_min": importance_min,
                 "limit": limit
             },
-            "search_engine": "synapse_intelligent_search_v1.0"
+            "metadata": {
+                "processing_time_ms": 0,
+                "include_content_preview": include_content,
+                "error": True
+            }
         }
 
 

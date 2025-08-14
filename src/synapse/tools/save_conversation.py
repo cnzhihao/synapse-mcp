@@ -21,7 +21,6 @@ from difflib import SequenceMatcher
 from synapse.models.conversation import ConversationRecord, Solution
 from synapse.storage.file_manager import FileManager
 from synapse.storage.paths import StoragePaths
-from synapse.tools.search_indexer import SearchIndexer
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -108,7 +107,6 @@ class SaveConversationTool:
         """
         self.storage_paths = storage_paths
         self.file_manager = FileManager(storage_paths)
-        self.search_indexer = SearchIndexer(storage_paths)
         
     async def save_conversation(
         self,
@@ -202,15 +200,9 @@ class SaveConversationTool:
             if not save_success:
                 raise RuntimeError("文件保存失败")
             
-            # 9. 更新搜索索引
+            # 9. AI语义搜索不需要维护索引
             if ctx:
-                await ctx.info("更新搜索索引...")
-            index_success = self.search_indexer.add_conversation(conversation)
-            
-            if not index_success:
-                logger.warning(f"搜索索引更新失败: {conversation.id}")
-                if ctx:
-                    await ctx.info("搜索索引更新失败，但对话已保存")
+                await ctx.info("对话已可通过AI语义搜索查找")
             
             logger.info(f"成功保存对话: {conversation.id}")
             if ctx:
