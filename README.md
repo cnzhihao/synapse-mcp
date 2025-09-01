@@ -80,3 +80,18 @@ uv run mcp dev src/synapse/server.py
   }
 }
 ```
+
+### Claude Code 安装
+
+使用 Claude Code CLI 添加 Synapse MCP：
+
+```bash
+claude mcp add synapse-mcp --scope user -- uv --directory /path/to/synapse-mcp run mcp run /path/to/synapse-mcp/src/synapse/server.py
+```
+
+替换 `/path/to/synapse-mcp` 为你的实际项目路径。
+
+**注意**: 
+- `--scope user` 表示用户级别安装
+- 确保项目路径使用绝对路径
+- 安装后可通过 `claude mcp list` 查看已安装的 MCP 服务

@@ -167,13 +167,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Parallax effect for hero background
+    // Enhanced parallax effect for hero background with fade-out
     const hero = document.querySelector('.hero-bg');
     if (hero) {
         window.addEventListener('scroll', () => {
             const scrolled = window.scrollY;
+            const windowHeight = window.innerHeight;
+            
+            // Parallax effect
             const parallax = scrolled * 0.5;
             hero.style.transform = `translateY(${parallax}px)`;
+            
+            // Fade out effect as user scrolls down
+            const fadePoint = windowHeight * 0.8; // Start fading at 80% of viewport height
+            const opacity = Math.max(0, 1 - (scrolled / fadePoint));
+            
+            // Apply opacity to the background image
+            if (scrolled > 0) {
+                hero.style.setProperty('--hero-opacity', opacity);
+            } else {
+                hero.style.setProperty('--hero-opacity', 1);
+            }
         });
     }
 

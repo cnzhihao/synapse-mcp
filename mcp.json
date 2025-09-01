@@ -1,0 +1,9 @@
+{
+  "synapse": {
+    "command": "uv",
+    "args": ["--directory", "/Users/cnzhihao/course/synapse-mcp", "run", "python3", "src/synapse/server.py"],
+    "env": {
+      "PYTHONPATH": "/Users/cnzhihao/course/synapse-mcp/src"
+    }
+  }
+}

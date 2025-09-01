@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>硅基突触 (Synapse-MCP) - 为您的 AI 编程助手赋予长期记忆</title>
+    <style>
+        /* 内联所有CSS，避免外部依赖 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tui, sans-serif;
+            background-color: #0A0F1E;
+            color: #E0E0E0;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+        
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+            background: rgba(10, 15, 30, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(8, 212, 212, 0.2);
+            padding: 1rem 0;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            color: white;
+            font-size: 1.25rem;
+            font-weight: bold;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .nav {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        .nav a {
+            color: #D1D5DB;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .nav a:hover {
+            color: #06B6D4;
+        }
+        
+        /* Hero Section */
+        .hero {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: linear-gradient(135deg, #0A0F1E 0%, #1E3A8A 50%, #0A0F1E 100%);
+            position: relative;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, rgba(8, 212, 212, 0.1) 0%, transparent 70%);
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 10;
+            padding: 2rem;
+        }
+        
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, #06B6D4, #0EA5E9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero p {
+            font-size: 1.125rem;
+            color: #D1D5DB;
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: #06B6D4;
+            color: white;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin: 0.5rem;
+        }
+        
+        .btn:hover {
+            background: #0891B2;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(8, 212, 212, 0.4);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid #06B6D4;
+            color: #06B6D4;
+        }
+        
+        .btn-secondary:hover {
+            background: #06B6D4;
+            color: white;
+        }
+        
+        /* Sections */
+        .section {
+            padding: 4rem 0;
+        }
+        
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, #06B6D4, #10B981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .section-subtitle {
+            text-align: center;
+            font-size: 1.125rem;
+            color: #06B6D4;
+            margin-bottom: 3rem;
+        }
+        
+        /* Cards */
+        .grid {
+            display: grid;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+        
+        .card {
+            background: rgba(17, 24, 39, 0.8);
+            padding: 2rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(8, 212, 212, 0.2);
+            transition: all 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(8, 212, 212, 0.6);
+            box-shadow: 0 20px 40px rgba(8, 212, 212, 0.2);
+        }
+        
+        .card-icon {
+            width: 3rem;
+            height: 3rem;
+            background: rgba(8, 212, 212, 0.2);
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #06B6D4;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .card h3 {
+            color: white;
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        
+        .card p {
+            color: #9CA3AF;
+        }
+        
+        /* Features */
+        .features {
+            background: rgba(17, 24, 39, 0.3);
+        }
+        
+        /* Quick Start */
+        .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .step-number {
+            width: 3rem;
+            height: 3rem;
+            background: rgba(8, 212, 212, 0.2);
+            color: #06B6D4;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+        
+        .step-content h3 {
+            color: white;
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .step-content p {
+            color: #9CA3AF;
+            margin-bottom: 1rem;
+        }
+        
+        .step-content pre {
+            background: #111827;
+            color: #D1D5DB;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            border: 1px solid #374151;
+        }
+        
+        .step-content code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+        
+        /* Footer */
+        .footer {
+            border-top: 1px solid rgba(8, 212, 212, 0.2);
+            padding: 2rem 0;
+            text-align: center;
+            color: #6B7280;
+        }
+        
+        .footer a {
+            color: #06B6D4;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav {
+                display: none;
+            }
+            
+            .hero h1 {
+                font-size: 2rem;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+            
+            .step {
+                flex-direction: column;
+            }
+            
+            .step-number {
+                align-self: flex-start;
+            }
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fade-in-up {
+            animation: fadeInUp 0.8s ease-out;
+        }
+        
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="#" class="logo">
+                    🧠 硅基突触
+                </a>
+                <nav class="nav">
+                    <a href="#features">功能特性</a>
+                    <a href="#tools">MCP工具</a>
+                    <a href="#quick-start">快速上手</a>
+                    <a href="https://github.com/cnzhihao/synapse-mcp" target="_blank">GitHub</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-content">
+                <h1 class="fade-in-up">Synapse-MCP: AI 助手的完美记忆大脑</h1>
+                <p class="fade-in-up">
+                    告别 AI 的"金鱼记忆"。Synapse 自动保存您与 AI 的每一次对话，构建您的专属知识库，并在您需要时智能注入相关上下文，让您的 AI 助手越用越聪明。
+                </p>
+                <div class="fade-in-up">
+                    <a href="#quick-start" class="btn">🚀 立即开始</a>
+                    <a href="https://github.com/cnzhihao/synapse-mcp" target="_blank" class="btn btn-secondary">📦 查看源码</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features -->
+        <section id="features" class="section features">
+            <div class="container">
+                <h2 class="section-title">核心功能</h2>
+                <p class="section-subtitle">Synapse MCP 的强大功能一览</p>
+                
+                <div class="grid grid-3">
+                    <div class="card fade-in-up">
+                        <div class="card-icon">💾</div>
+                        <h3>对话自动存储</h3>
+                        <p>无需手动操作，自动保存完整对话记录。支持标题、标签、分类和评级，让信息井井有条。</p>
+                    </div>
+                    
+                    <div class="card fade-in-up">
+                        <div class="card-icon">🔍</div>
+                        <h3>三层智能搜索</h3>
+                        <p>通过关键词、标签过滤和全文语义匹配，快速、精准地从海量历史中找到所需信息。</p>
+                    </div>
+                    
+                    <div class="card fade-in-up">
+                        <div class="card-icon">🧠</div>
+                        <h3>智能上下文注入</h3>
+                        <p>在新查询时，自动分析意图，从知识库提取相关历史对话注入当前上下文，让 AI 更懂你。</p>
+                    </div>
+                    
+                    <div class="card fade-in-up">
+                        <div class="card-icon">♻️</div>
+                        <h3>可重用方案提取</h3>
+                        <p>一键从过去对话中识别并提取高价值代码片段、方法或设计模式，形成可随时调用的"解决方案"库。</p>
+                    </div>
+                    
+                    <div class="card fade-in-up">
+                        <div class="card-icon">🗄️</div>
+                        <h3>完整数据管理</h3>
+                        <p>提供完整的数据生命周期管理，包括导入/导出、一键备份与恢复，确保您的知识资产安全可控。</p>
+                    </div>
+                    
+                    <div class="card fade-in-up">
+                        <div class="card-icon">🔒</div>
+                        <h3>本地优先，隐私安全</h3>
+                        <p>所有数据默认存储在本地，您拥有完全的控制权。隐私和数据安全是我们的首要考虑。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MCP Tools -->
+        <section id="tools" class="section">
+            <div class="container">
+                <h2 class="section-title">MCP 工具详解</h2>
+                <p class="section-subtitle">8个核心工具，构建完整的AI记忆生态</p>
+                
+                <div class="grid grid-3">
+                    <div class="card fade-in-up">
+                        <div class="card-icon">💾</div>
+                        <h3>save-conversation</h3>
+                        <p>自动保存当前对话到知识库，支持AI自动分析和标签提取。</p>
+                    </div>
+                    
+                    <div class="card fade-in-up">
+                        <div class="card-icon">🔍</div>
+                        <h3>search-knowledge</h3>
+                        <p>使用三层智能搜索算法，精准检索相关历史对话和解决方案。</p>
+                    </div>
+                    
+                    <div class="card fade-in-up">
+                        <div class="card-icon">🧠</div>
+                        <h3>inject-context</h3>
+                        <p>基于多因子相关性算法，自动为当前对话注入最相关的历史上下文。</p>
+                    </div>
+                    
+                    <div class="card fade-in-up">
+                        <div class="card-icon">♻️</div>
+                        <h3>extract-solutions</h3>
+                        <p>智能识别并提取高价值代码片段、方法和设计模式，建立可重用解决方案库。</p>
+                    </div>
+                    
+                    <div class="card fade-in-up">
+                        <div class="card-icon">📤</div>
+                        <h3>export-data</h3>
+                        <p>将所有对话、解决方案和索引导出到指定目录，支持数据迁移和分享。</p>
+                    </div>
+                    
+                    <div class="card fade-in-up">
+                        <div class="card-icon">📥</div>
+                        <h3>import-data</h3>
+                        <p>从导出的数据目录导入对话和解决方案，支持append和overwrite模式。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Start -->
+        <section id="quick-start" class="section">
+            <div class="container">
+                <h2 class="section-title">快速上手</h2>
+                <p class="section-subtitle">只需四步，为您的 AI 助手装上"记忆核心"</p>
+                
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>环境要求</h3>
+                        <p>确保您的系统已安装：Python 3.10+ 和 uv (推荐) 或 pip。</p>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>下载并安装依赖</h3>
+                        <p>克隆项目仓库并使用 uv 同步依赖项。</p>
+                        <pre><code>git clone https://github.com/cnzhihao/synapse-mcp.git
+cd synapse-mcp
+uv sync</code></pre>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>运行 Synapse MCP 服务器</h3>
+                        <p>启动服务器。我们推荐在开发时使用热重载模式。</p>
+                        <pre><code># 运行生产模式
+uv run mcp run src/synapse/server.py
+
+# 运行开发模式 (带热重载)
+uv run mcp dev src/synapse/server.py</code></pre>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3>配置您的 MCP 客户端</h3>
+                        <p>在您的项目根目录或全局配置中创建 mcp.json 文件，指向 Synapse 服务器。</p>
+                        <pre><code>{
+  "mcpServers": {
+    "synapse": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/path/to/your/synapse-mcp",
+        "run",
+        "mcp",
+        "run",
+        "/path/to/your/synapse-mcp/src/synapse/server.py"
+      ]
+    }
+  }
+}</code></pre>
+                        <p style="color: #F59E0B; margin-top: 0.5rem;">请务必将 /path/to/your/synapse-mcp 替换为项目的实际路径。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA -->
+        <section class="section">
+            <div class="container" style="text-align: center;">
+                <h2 style="color: white; font-size: 2rem; margin-bottom: 1rem;">立即升级您的 AI 伙伴</h2>
+                <p style="color: #9CA3AF; font-size: 1.125rem; margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+                    不要再让宝贵的想法和解决方案随对话窗口的关闭而消失。立即安装 Synapse MCP，开始构建一个真正属于您的、不断进化的 AI 编程大脑。
+                </p>
+                <a href="https://github.com/cnzhihao/synapse-mcp" target="_blank" class="btn">📦 前往 GitHub 开始使用</a>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>
+                <a href="https://github.com/cnzhihao/synapse-mcp" target="_blank">GitHub 仓库</a> |
+                <a href="https://github.com/cnzhihao/synapse-mcp/issues" target="_blank">报告问题</a>
+            </p>
+            <p>基于 <a href="https://github.com/cnzhihao/mcp" target="_blank">Model Context Protocol (MCP)</a> 构建</p>
+            <p>Copyright © 2025 cnzhihao. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // 简单的交互功能
+        document.addEventListener('DOMContentLoaded', function() {
+            // 平滑滚动
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+
+            // 添加滚动动画
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -100px 0px'
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.animation = 'fadeInUp 0.8s ease-out forwards';
+                        entry.target.style.opacity = '1';
+                    }
+                });
+            }, observerOptions);
+
+            // 观察所有卡片元素
+            document.querySelectorAll('.card, .step').forEach(el => {
+                el.style.opacity = '0';
+                observer.observe(el);
+            });
+        });
+    </script>
+</body>
+</html>

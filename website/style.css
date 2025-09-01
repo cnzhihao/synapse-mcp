@@ -14,10 +14,66 @@ body {
 }
 
 .hero-bg {
+    --hero-opacity: 1;
+    position: relative;
+    z-index: 1;
+}
+
+.hero-bg::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background-image: url('https://r2.flowith.net/files/o/1756459625153-tech_future_neural_network_visual_index_0@1024x1024.png');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
+    opacity: var(--hero-opacity);
+    z-index: -1;
+    transition: opacity 0.1s ease-out;
+}
+
+/* 添加遮罩层用于渐隐效果 */
+.hero-bg::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, transparent 0%, rgba(10, 15, 30, 0.3) 70%, rgba(10, 15, 30, 0.8) 90%, rgba(10, 15, 30, 1) 100%);
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* 确保后续内容在hero section之上 */
+body > main > section:not(.hero-bg) {
+    position: relative;
+    z-index: 100;
+    background-color: var(--color-bg);
+}
+
+/* Z-index层级定义 */
+/* 
+  Layer hierarchy:
+  - Header: z-index 1000 (最高，始终可见)
+  - Content sections: z-index 100 (内容区域)
+  - Hero overlay: z-index 2 (hero section遮罩)
+  - Hero background: z-index 1 (hero section背景)
+  - Hero background image: z-index -1 (背景图片)
+*/
+
+/* 确保header始终在最上层 */
+header {
+    z-index: 1000 !important;
+}
+
+/* hero section内容层级 */
+.hero-bg > div {
+    position: relative;
+    z-index: 10;
 }
 
 .nav-link {
@@ -43,6 +99,131 @@ body {
 
 .btn-lg {
     @apply px-8 py-4 text-lg;
+}
+
+/* Hero区域专用按钮样式 - 白色边框透明胶囊形状 */
+.btn-hero {
+    background: transparent;
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    color: white;
+    backdrop-filter: blur(10px);
+    border-radius: 50px;  /* 胶囊形状：使用大圆角让短边变成半圆 */
+    padding: 14px 28px;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    white-space: nowrap;  /* 确保文本不换行 */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s;
+}
+
+.btn-hero:hover::before {
+    left: 100%;
+}
+
+.btn-hero:hover {
+    border-color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-3px) scale(1.02);  /* 增加轻微缩放效果 */
+    box-shadow: 
+        0 12px 35px rgba(0, 0, 0, 0.3),
+        0 0 25px rgba(255, 255, 255, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.btn-hero:active {
+    transform: translateY(0);
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Hero按钮特定变体样式 */
+.btn-hero-primary {
+    border-color: rgba(6, 182, 212, 0.8);
+    color: #06B6D4;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.btn-hero-primary:hover {
+    border-color: #06B6D4;
+    background: rgba(6, 182, 212, 0.15);
+    color: #67E8F9;
+    box-shadow: 
+        0 8px 25px rgba(6, 182, 212, 0.3),
+        0 0 20px rgba(6, 182, 212, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.btn-hero-secondary {
+    border-color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.btn-hero-secondary:hover {
+    border-color: white;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+/* 确保按钮在各种背景下的可见性 */
+@media (prefers-contrast: high) {
+    .btn-hero {
+        border-width: 3px;
+        border-color: white;
+        background: rgba(0, 0, 0, 0.8);
+    }
+    
+    .btn-hero-primary {
+        border-color: #06B6D4;
+        color: #06B6D4;
+        background: rgba(0, 0, 0, 0.9);
+    }
+}
+
+/* 移动端按钮优化 - 保持胶囊形状和水平布局 */
+@media (max-width: 640px) {
+    .btn-hero {
+        padding: 12px 24px;
+        font-size: 15px;
+        border-radius: 50px;  /* 保持胶囊形状 */
+        min-width: 140px;
+        justify-content: center;
+    }
+    
+    /* 移动端保持水平布局，但缩小间距 */
+    .hero-bg .flex.gap-6 {
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+}
+
+/* 按钮聚焦状态 - 可访问性 */
+.btn-hero:focus {
+    outline: none;
+    border-color: #06B6D4;
+    box-shadow: 
+        0 0 0 3px rgba(6, 182, 212, 0.4),
+        0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.btn-hero:focus:not(:focus-visible) {
+    box-shadow: none;
+    border-color: rgba(255, 255, 255, 0.6);
 }
 
 .section-title {
