@@ -24,7 +24,7 @@ When working on this project, always provide **extremely detailed explanations**
 **✅ Correct Commands (Primary - Use These)**:
 ```bash
 # Run the MCP server
-uv run python3 src/synapse/server.py
+uv run mcp run src/synapse/server.py
 
 # Run tests
 uv run python3 -m pytest tests/

@@ -64,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const otherIcon = otherQuestion.querySelector('i[data-lucide="chevron-down"]');
                     
                     otherAnswer.classList.remove('show');
+                    otherAnswer.classList.add('hidden');
                     otherQuestion.classList.remove('active');
                     if (otherIcon) {
                         otherIcon.style.transform = 'rotate(0deg)';
@@ -75,12 +76,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const isOpen = answer.classList.contains('show');
             if (isOpen) {
                 answer.classList.remove('show');
+                answer.classList.add('hidden');
                 question.classList.remove('active');
                 if (icon) {
                     icon.style.transform = 'rotate(0deg)';
                 }
             } else {
                 answer.classList.add('show');
+                answer.classList.remove('hidden');
                 question.classList.add('active');
                 if (icon) {
                     icon.style.transform = 'rotate(180deg)';
@@ -274,6 +277,25 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.anim-on-scroll').forEach(el => {
         observer.observe(el);
     });
+
+    // Copy code functionality
+    window.copyCode = function(button) {
+        const codeBlock = button.closest('.code-block-enhanced').querySelector('code');
+        const text = codeBlock.textContent;
+        
+        navigator.clipboard.writeText(text).then(() => {
+            const originalHtml = button.innerHTML;
+            button.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-green-400"></i>';
+            lucide.createIcons();
+            
+            setTimeout(() => {
+                button.innerHTML = originalHtml;
+                lucide.createIcons();
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+        });
+    };
 
     // Initialize all icons after DOM manipulations
     setTimeout(() => {
