@@ -1,0 +1,436 @@
+:root {
+    --color-bg: #0A0F1E;
+    --color-primary: #08D4D4;
+    --color-secondary: #22d3ee;
+    --color-text: #E0E0E0;
+    --color-dark-blue: #0D1A32;
+    --font-sans: 'Noto Sans SC', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+}
+
+.hero-bg {
+    background-image: url('https://r2.flowith.net/files/o/1756459625153-tech_future_neural_network_visual_index_0@1024x1024.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+.nav-link {
+    @apply text-gray-300 hover:text-cyan-400 transition-colors duration-300;
+}
+
+.nav-link-ext {
+    @apply text-gray-300 hover:text-cyan-400 transition-colors duration-300;
+}
+
+.btn {
+    @apply inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm transition-transform duration-300 ease-in-out transform hover:-translate-y-1;
+}
+
+.btn-primary {
+    @apply text-white bg-cyan-600 hover:bg-cyan-500;
+    box-shadow: 0 0 15px rgba(8, 212, 212, 0.4), 0 0 25px rgba(8, 212, 212, 0.2), inset 0 0 5px rgba(255, 255, 255, 0.2);
+}
+
+.btn-secondary {
+    @apply text-cyan-300 bg-gray-900/50 border-cyan-500/50 hover:bg-gray-800/80 hover:text-white;
+}
+
+.btn-lg {
+    @apply px-8 py-4 text-lg;
+}
+
+.section-title {
+    @apply text-3xl md:text-4xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-teal-500;
+}
+
+.section-subtitle {
+    @apply text-lg text-cyan-400;
+}
+
+.feature-card {
+    @apply bg-gray-900/70 p-8 rounded-xl border border-cyan-500/20 backdrop-blur-md transition-all duration-400 hover:border-cyan-400/60 hover:shadow-cyan-glow hover:-translate-y-2;
+}
+
+.feature-icon {
+    @apply w-12 h-12 mb-6 bg-cyan-900/50 text-cyan-400 rounded-lg flex items-center justify-center;
+}
+
+.feature-icon > i {
+    @apply w-7 h-7;
+}
+
+.quick-start-step {
+    @apply flex items-start space-x-6;
+}
+
+.step-number {
+    @apply flex-shrink-0 w-12 h-12 flex items-center justify-center bg-gray-800 border-2 border-cyan-500/30 rounded-full text-cyan-400 font-bold text-xl;
+}
+
+.step-title {
+    @apply text-xl font-bold text-white mb-2;
+}
+
+.step-description {
+    @apply text-gray-400;
+}
+
+pre {
+    @apply bg-gray-900 border border-gray-700 rounded-xl p-4 mt-4 overflow-x-auto;
+}
+
+code {
+    @apply font-mono text-sm text-gray-300;
+}
+
+.language-shell::before {
+    content: '$ ';
+    color: #888;
+}
+
+pre.mermaid {
+    @apply bg-transparent border-none p-0 text-center;
+}
+
+pre.mermaid svg {
+    @apply max-w-full h-auto mx-auto;
+}
+
+.workflow-step {
+    @apply flex flex-col items-center p-6 bg-gray-900/60 rounded-xl border border-cyan-500/10;
+}
+
+.workflow-arrow {
+    @apply items-center justify-center text-cyan-500/50;
+}
+
+.workflow-arrow > i {
+    @apply w-10 h-10;
+}
+
+.workflow-icon {
+    @apply w-14 h-14 mb-4 bg-cyan-900/50 text-cyan-400 rounded-full flex items-center justify-center;
+}
+.workflow-icon > i {
+    @apply w-8 h-8;
+}
+
+.workflow-title {
+    @apply text-lg font-semibold text-white mb-2;
+}
+
+.workflow-description {
+    @apply text-sm text-gray-400;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.animate-fade-in {
+    animation: fadeIn 1s ease-out forwards;
+}
+
+.anim-on-scroll {
+    opacity: 0;
+    transform: translateY(30px);
+}
+
+.shadow-cyan-glow {
+    box-shadow: 0 0 30px rgba(8, 212, 212, 0.3);
+}
+
+/* ============ New Component Styles ============ */
+
+/* Use Case Cards */
+.use-case-card {
+    @apply bg-gray-900/70 p-6 rounded-xl border border-cyan-500/20 backdrop-blur-md transition-all duration-400 hover:border-cyan-400/60 hover:shadow-cyan-glow hover:-translate-y-2;
+}
+
+.use-case-icon {
+    @apply w-12 h-12 mb-4 bg-gradient-to-br from-cyan-900/50 to-blue-900/50 text-cyan-400 rounded-lg flex items-center justify-center;
+}
+
+.use-case-icon > i {
+    @apply w-6 h-6;
+}
+
+.use-case-scenario {
+    @apply bg-gray-800/50 rounded-lg p-3 mb-4;
+}
+
+.use-case-benefit {
+    @apply flex justify-start;
+}
+
+/* Tool Cards */
+.tool-card {
+    @apply bg-gray-900/60 p-6 rounded-xl border border-cyan-500/20 backdrop-blur-sm transition-all duration-400 hover:border-cyan-400/40 hover:bg-gray-900/80;
+}
+
+.tool-header {
+    @apply flex items-start mb-4;
+}
+
+.tool-icon {
+    @apply w-10 h-10 mr-4 bg-cyan-900/40 text-cyan-400 rounded-lg flex items-center justify-center flex-shrink-0;
+}
+
+.tool-icon > i {
+    @apply w-5 h-5;
+}
+
+.tool-title {
+    @apply text-lg font-bold text-white mb-1;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.tool-subtitle {
+    @apply text-sm text-cyan-400;
+}
+
+.tool-content {
+    @apply ml-14;
+}
+
+.tool-params ul li {
+    @apply flex items-center;
+}
+
+.tool-params ul li code {
+    @apply bg-gray-800/60 text-cyan-300 px-2 py-1 rounded text-xs font-mono mr-2;
+}
+
+.tool-feature {
+    @apply flex justify-start;
+}
+
+/* Compatibility Cards */
+.compatibility-card {
+    @apply bg-gray-900/40 p-6 rounded-xl border border-gray-700/50 transition-all duration-300 hover:border-cyan-500/30 hover:bg-gray-900/60;
+}
+
+.requirement-card {
+    @apply bg-gray-900/40 p-6 rounded-xl border border-gray-700/50;
+}
+
+/* FAQ Styles */
+.faq-item {
+    @apply bg-gray-900/60 rounded-xl border border-gray-700/50 overflow-hidden transition-all duration-300;
+}
+
+.faq-question {
+    @apply p-6 transition-colors duration-300 hover:bg-gray-900/80;
+}
+
+.faq-question.active {
+    @apply bg-gray-900/80 border-b border-gray-700/50;
+}
+
+.faq-question.active i {
+    @apply transform rotate-180;
+}
+
+.faq-answer {
+    @apply px-6 pb-6 border-t border-gray-700/30;
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.3s ease-out;
+}
+
+.faq-answer.show {
+    max-height: 1000px;
+    @apply block;
+}
+
+.faq-answer code {
+    @apply bg-gray-800/80 text-cyan-300 px-2 py-1 rounded text-sm;
+}
+
+/* Enhanced Feature Cards */
+.feature-card:hover {
+    @apply scale-105;
+}
+
+/* Responsive Navigation */
+@media (max-width: 768px) {
+    .nav-link {
+        @apply block py-3 px-4 text-left border-b border-gray-800/50;
+    }
+    
+    .nav-link-ext {
+        @apply block py-3 px-4 text-left;
+    }
+    
+    .tool-card {
+        @apply p-4;
+    }
+    
+    .tool-content {
+        @apply ml-0 mt-4;
+    }
+    
+    .tool-header {
+        @apply flex-col items-start;
+    }
+    
+    .tool-icon {
+        @apply mb-2 mr-0;
+    }
+}
+
+/* Enhanced Animations */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.anim-slide-up {
+    animation: slideInUp 0.8s ease-out forwards;
+}
+
+.anim-slide-left {
+    animation: slideInLeft 0.8s ease-out forwards;
+}
+
+.anim-slide-right {
+    animation: slideInRight 0.8s ease-out forwards;
+}
+
+/* Enhanced Button Styles */
+.btn:hover {
+    @apply scale-105;
+    box-shadow: 0 0 25px rgba(8, 212, 212, 0.6), 0 0 40px rgba(8, 212, 212, 0.3);
+}
+
+.btn-primary:active {
+    @apply scale-95;
+}
+
+/* Code Block Enhancements */
+pre {
+    @apply relative;
+}
+
+pre::before {
+    content: '';
+    @apply absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full;
+    box-shadow: 6px 0 0 #fbbf24, 12px 0 0 #10b981;
+}
+
+pre code {
+    @apply block leading-relaxed;
+}
+
+/* Performance Metrics Cards */
+.requirement-card .grid > div {
+    @apply transition-transform duration-300 hover:scale-105;
+}
+
+/* Loading States */
+.loading {
+    @apply opacity-50 pointer-events-none;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Accessibility Improvements */
+.nav-link:focus,
+.btn:focus,
+.faq-question:focus {
+    @apply outline-none ring-2 ring-cyan-400/50 ring-offset-2 ring-offset-gray-900;
+}
+
+/* Print Styles */
+@media print {
+    .hero-bg {
+        background-image: none !important;
+        background-color: #1f2937 !important;
+    }
+    
+    .btn,
+    .faq-question {
+        @apply border border-gray-400 !important;
+    }
+    
+    .faq-answer {
+        @apply block !important;
+        max-height: none !important;
+    }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    .feature-card,
+    .tool-card,
+    .compatibility-card,
+    .requirement-card,
+    .faq-item {
+        @apply border-cyan-400 bg-black;
+    }
+    
+    .text-gray-400 {
+        @apply text-gray-200;
+    }
+    
+    .text-gray-500 {
+        @apply text-gray-300;
+    }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    .anim-on-scroll,
+    .animate-fade-in,
+    .anim-slide-up,
+    .anim-slide-left,
+    .anim-slide-right {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+    
+    .transition-all,
+    .transition-transform,
+    .transition-colors {
+        transition: none !important;
+    }
+}
+
+html {
+    scroll-behavior: smooth;
+}

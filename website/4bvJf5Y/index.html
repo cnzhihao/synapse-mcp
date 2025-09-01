@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>硅基突触 (Synapse-MCP) - 为您的 AI 编程助手赋予长期记忆</title>
+    <meta name="description" content="Synapse MCP是一个智能记忆和知识检索MCP工具，为AI编程助手提供对话历史存储、智能搜索和上下文增强功能。本地优先，隐私安全，支持Claude Desktop等MCP客户端。">
+    <meta name="keywords" content="MCP,Model Context Protocol,AI记忆,对话存储,知识检索,上下文注入,解决方案提取,Claude Desktop,AI助手,编程助手">
+    <meta name="author" content="cnzhihao">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://github.com/cnzhihao/synapse-mcp">
+    <meta property="og:title" content="硅基突触 (Synapse-MCP) - 为您的 AI 编程助手赋予长期记忆">
+    <meta property="og:description" content="Synapse MCP是一个智能记忆和知识检索MCP工具，为AI编程助手提供完整的记忆和上下文功能。">
+    <meta property="og:image" content="https://r2.flowith.net/files/o/1756459625153-tech_future_neural_network_visual_index_0@1024x1024.png">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://github.com/cnzhihao/synapse-mcp">
+    <meta property="twitter:title" content="硅基突触 (Synapse-MCP) - 为您的 AI 编程助手赋予长期记忆">
+    <meta property="twitter:description" content="Synapse MCP是一个智能记忆和知识检索MCP工具，为AI编程助手提供完整的记忆和上下文功能。">
+    <meta property="twitter:image" content="https://r2.flowith.net/files/o/1756459625153-tech_future_neural_network_visual_index_0@1024x1024.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+    
+    <!-- Performance optimizations -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" as="style">
+    <link rel="preload" href="https://cdn.tailwindcss.com?plugins=typography" as="script">
+    <link rel="prefetch" href="https://unpkg.com/lucide@latest" as="script">
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Synapse MCP",
+      "description": "智能记忆和知识检索MCP工具，为AI编程助手提供对话历史存储和上下文增强功能。",
+      "url": "https://github.com/cnzhihao/synapse-mcp",
+      "author": {
+        "@type": "Person",
+        "name": "cnzhihao"
+      },
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Windows, macOS, Linux",
+      "programmingLanguage": "Python",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    }
+    </script>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-gray-300 font-sans antialiased">
+
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-gray-900/50 backdrop-blur-xl border-b border-cyan-500/20">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="text-xl font-bold text-white tracking-wider flex items-center">
+                <i data-lucide="brain-circuit" class="w-7 h-7 mr-2 text-cyan-400"></i>
+                硅基突触
+            </a>
+            <nav class="hidden md:flex items-center space-x-8">
+                <a href="#use-cases" class="nav-link">应用场景</a>
+                <a href="#features" class="nav-link">功能特性</a>
+                <a href="#tools" class="nav-link">MCP工具</a>
+                <a href="#how-it-works" class="nav-link">工作原理</a>
+                <a href="#compatibility" class="nav-link">兼容性</a>
+                <a href="#quick-start" class="nav-link">快速上手</a>
+                <a href="#faq" class="nav-link">FAQ</a>
+                <a href="https://github.com/cnzhihao/synapse-mcp" target="_blank" class="nav-link-ext flex items-center">
+                    GitHub <i data-lucide="arrow-up-right" class="w-4 h-4 ml-1"></i>
+                </a>
+            </nav>
+            <button id="mobile-menu-button" class="md:hidden text-white">
+                <i data-lucide="menu" class="w-6 h-6"></i>
+            </button>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden px-6 pb-4 flex flex-col space-y-4">
+             <a href="#use-cases" class="nav-link">应用场景</a>
+             <a href="#features" class="nav-link">功能特性</a>
+             <a href="#tools" class="nav-link">MCP工具</a>
+             <a href="#how-it-works" class="nav-link">工作原理</a>
+             <a href="#compatibility" class="nav-link">兼容性</a>
+             <a href="#quick-start" class="nav-link">快速上手</a>
+             <a href="#faq" class="nav-link">FAQ</a>
+             <a href="https://github.com/cnzhihao/synapse-mcp" target="_blank" class="nav-link-ext flex items-center">
+                 GitHub <i data-lucide="arrow-up-right" class="w-4 h-4 ml-1"></i>
+             </a>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero-bg relative h-screen flex items-center justify-center text-center overflow-hidden">
+            <div class="absolute inset-0 bg-black/60 z-10"></div>
+            <div class="relative z-20 px-4 animate-fade-in">
+                <h1 class="text-4xl md:text-6xl font-extrabold text-white mb-4 tracking-tighter">
+                    <span class="text-cyan-400">Synapse-MCP</span>: AI 助手的完美记忆大脑
+                </h1>
+                <p class="max-w-3xl mx-auto text-lg md:text-xl text-gray-300 mb-8">
+                    告别 AI 的“金鱼记忆”。Synapse 自动保存您与 AI 的每一次对话，构建您的专属知识库，并在您需要时智能注入相关上下文，让您的 AI 助手越用越聪明。
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+                    <a href="#quick-start" class="btn btn-primary">
+                        <i data-lucide="rocket" class="w-5 h-5 mr-2"></i> 立即开始
+                    </a>
+                    <a href="https://github.com/cnzhihao/synapse-mcp" target="_blank" class="btn btn-secondary">
+                        <i data-lucide="github" class="w-5 h-5 mr-2"></i> 查看源码
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Use Cases -->
+        <section id="use-cases" class="py-24 sm:py-32">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16 anim-on-scroll">
+                    <h2 class="section-title">应用场景</h2>
+                    <p class="section-subtitle">Synapse MCP 在实际开发中的强大应用</p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="use-case-card anim-on-scroll">
+                        <div class="use-case-icon"><i data-lucide="code-2"></i></div>
+                        <h3 class="text-xl font-bold text-white mb-3">项目迁移助手</h3>
+                        <div class="use-case-scenario mb-4">
+                            <p class="text-sm text-cyan-400 mb-2">场景：从Vue 2升级到Vue 3</p>
+                            <p class="text-gray-400 text-sm">AI记住了之前处理类似迁移的对话，自动提供相关的迁移策略、常见问题解决方案和最佳实践。</p>
+                        </div>
+                        <div class="use-case-benefit">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-900/30 text-green-400">
+                                <i data-lucide="trending-up" class="w-3 h-3 mr-1"></i>
+                                效率提升 70%
+                            </span>
+                        </div>
+                    </div>
+                    <div class="use-case-card anim-on-scroll">
+                        <div class="use-case-icon"><i data-lucide="bug"></i></div>
+                        <h3 class="text-xl font-bold text-white mb-3">调试专家</h3>
+                        <div class="use-case-scenario mb-4">
+                            <p class="text-sm text-cyan-400 mb-2">场景：解决复杂的内存泄漏</p>
+                            <p class="text-gray-400 text-sm">当遇到类似错误时，AI能立即调取历史解决方案，包括具体的调试步骤、工具使用方法和根因分析。</p>
+                        </div>
+                        <div class="use-case-benefit">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-900/30 text-blue-400">
+                                <i data-lucide="clock" class="w-3 h-3 mr-1"></i>
+                                调试时间减少 80%
+                            </span>
+                        </div>
+                    </div>
+                    <div class="use-case-card anim-on-scroll">
+                        <div class="use-case-icon"><i data-lucide="layers"></i></div>
+                        <h3 class="text-xl font-bold text-white mb-3">架构顾问</h3>
+                        <div class="use-case-scenario mb-4">
+                            <p class="text-sm text-cyan-400 mb-2">场景：设计微服务架构</p>
+                            <p class="text-gray-400 text-sm">基于之前讨论的架构方案和技术选型，AI为新项目提供量身定制的架构建议和实施路径。</p>
+                        </div>
+                        <div class="use-case-benefit">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-900/30 text-purple-400">
+                                <i data-lucide="shield-check" class="w-3 h-3 mr-1"></i>
+                                决策准确度 95%
+                            </span>
+                        </div>
+                    </div>
+                    <div class="use-case-card anim-on-scroll">
+                        <div class="use-case-icon"><i data-lucide="rocket"></i></div>
+                        <h3 class="text-xl font-bold text-white mb-3">技术栈专家</h3>
+                        <div class="use-case-scenario mb-4">
+                            <p class="text-sm text-cyan-400 mb-2">场景：React项目性能优化</p>
+                            <p class="text-gray-400 text-sm">AI记忆了之前的性能优化经验，包括具体的优化技巧、工具配置和性能指标，为当前项目提供精准建议。</p>
+                        </div>
+                        <div class="use-case-benefit">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-900/30 text-orange-400">
+                                <i data-lucide="zap" class="w-3 h-3 mr-1"></i>
+                                性能提升 3x
+                            </span>
+                        </div>
+                    </div>
+                    <div class="use-case-card anim-on-scroll">
+                        <div class="use-case-icon"><i data-lucide="users"></i></div>
+                        <h3 class="text-xl font-bold text-white mb-3">团队知识库</h3>
+                        <div class="use-case-scenario mb-4">
+                            <p class="text-sm text-cyan-400 mb-2">场景：新人快速上手</p>
+                            <p class="text-gray-400 text-sm">汇总团队所有技术讨论和最佳实践，为新加入的开发者提供完整的项目背景和开发指南。</p>
+                        </div>
+                        <div class="use-case-benefit">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-teal-900/30 text-teal-400">
+                                <i data-lucide="graduation-cap" class="w-3 h-3 mr-1"></i>
+                                上手时间减少 60%
+                            </span>
+                        </div>
+                    </div>
+                    <div class="use-case-card anim-on-scroll">
+                        <div class="use-case-icon"><i data-lucide="book-open"></i></div>
+                        <h3 class="text-xl font-bold text-white mb-3">学习伙伴</h3>
+                        <div class="use-case-scenario mb-4">
+                            <p class="text-sm text-cyan-400 mb-2">场景：深度学习新技术</p>
+                            <p class="text-gray-400 text-sm">跟踪你的学习进度和理解程度，提供个性化的学习路径和复习材料，确保知识的巩固和深化。</p>
+                        </div>
+                        <div class="use-case-benefit">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-900/30 text-indigo-400">
+                                <i data-lucide="brain" class="w-3 h-3 mr-1"></i>
+                                学习效率 2x
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- What is it? -->
+        <section id="what-it-is" class="py-24 sm:py-32 bg-gray-900/30">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16 anim-on-scroll">
+                    <h2 class="section-title">它是什么？</h2>
+                    <p class="section-subtitle">解决 AI 助手的记忆鸿沟</p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-12 items-center">
+                    <div class="anim-on-scroll">
+                        <h3 class="text-2xl font-bold text-white mb-4">背景：AI 助手的“金鱼记忆”</h3>
+                        <p class="text-gray-400 leading-relaxed">
+                            当前的 AI 编程助手功能强大，但普遍存在一个核心痛点：缺乏长期记忆。每次对话都是一次全新的开始，它们无法记起之前的讨论、解决方案或特定项目的上下文。这导致了重复性工作，并限制了 AI 真正成为个性化高效伙伴的潜力。
+                        </p>
+                    </div>
+                    <div class="anim-on-scroll">
+                        <h3 class="text-2xl font-bold text-white mb-4">解决方案：您的个人 AI 知识中枢</h3>
+                        <p class="text-gray-400 leading-relaxed">
+                            <strong>Synapse MCP</strong> 作为一个智能记忆与知识检索协议服务器，专门为此问题而生。它像一个外置大脑，无缝连接到您的 AI 助手，将零散的对话转化为可搜索、可重用的个人知识库，在新的任务中主动提供最相关的历史信息，打破单次会话的壁垒。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features -->
+        <section id="features" class="py-24 sm:py-32 bg-gray-900/50">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16 anim-on-scroll">
+                    <h2 class="section-title">有什么用？</h2>
+                    <p class="section-subtitle">核心功能一览</p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="feature-card anim-on-scroll">
+                        <div class="feature-icon"><i data-lucide="database-zap"></i></div>
+                        <h3 class="text-xl font-bold text-white mb-2">对话自动存储</h3>
+                        <p class="text-gray-400">无需手动操作，自动保存完整对话记录。支持标题、标签、分类和评级，让信息井井有条。</p>
+                    </div>
+                    <div class="feature-card anim-on-scroll">
+                        <div class="feature-icon"><i data-lucide="search-code"></i></div>
+                        <h3 class="text-xl font-bold text-white mb-2">三层智能搜索</h3>
+                        <p class="text-gray-400">通过关键词、标签过滤和全文语义匹配，快速、精准地从海量历史中找到所需信息。</p>
+                    </div>
+                    <div class="feature-card anim-on-scroll">
+                        <div class="feature-icon"><i data-lucide="brain-circuit"></i></div>
+                        <h3 class="text-xl font-bold text-white mb-2">智能上下文注入</h3>
+                        <p class="text-gray-400">在新查询时，自动分析意图，从知识库提取相关历史对话注入当前上下文，让 AI 更懂你。</p>
+                    </div>
+                    <div class="feature-card anim-on-scroll">
+                        <div class="feature-icon"><i data-lucide="recycle"></i></div>
+                        <h3 class="text-xl font-bold text-white mb-2">可重用方案提取</h3>
+                        <p class="text-gray-400">一键从过去对话中识别并提取高价值代码片段、方法或设计模式，形成可随时调用的“解决方案”库。</p>
+                    </div>
+                    <div class="feature-card anim-on-scroll">
+                        <div class="feature-icon"><i data-lucide="database-backup"></i></div>
+                        <h3 class="text-xl font-bold text-white mb-2">完整数据管理</h3>
+                        <p class="text-gray-400">提供完整的数据生命周期管理，包括导入/导出、一键备份与恢复，确保您的知识资产安全可控。</p>
+                    </div>
+                    <div class="feature-card anim-on-scroll">
+                        <div class="feature-icon"><i data-lucide="shield-check"></i></div>
+                        <h3 class="text-xl font-bold text-white mb-2">本地优先，隐私安全</h3>
+                        <p class="text-gray-400">所有数据默认存储在本地，您拥有完全的控制权。隐私和数据安全是我们的首要考虑。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MCP Tools -->
+        <section id="tools" class="py-24 sm:py-32">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16 anim-on-scroll">
+                    <h2 class="section-title">MCP 工具详解</h2>
+                    <p class="section-subtitle">8个核心工具，构建完整的AI记忆生态</p>
+                </div>
+                <div class="grid lg:grid-cols-2 gap-8">
+                    <!-- Core Tools -->
+                    <div class="space-y-6">
+                        <h3 class="text-2xl font-bold text-white mb-6 flex items-center">
+                            <i data-lucide="cpu" class="w-6 h-6 mr-3 text-cyan-400"></i>
+                            核心工具
+                        </h3>
+                        
+                        <div class="tool-card anim-on-scroll">
+                            <div class="tool-header">
+                                <div class="tool-icon"><i data-lucide="save"></i></div>
+                                <div>
+                                    <h4 class="tool-title">save-conversation</h4>
+                                    <p class="tool-subtitle">智能对话存储</p>
+                                </div>
+                            </div>
+                            <div class="tool-content">
+                                <p class="text-gray-400 mb-4">自动保存当前对话到知识库，支持AI自动分析和标签提取。</p>
+                                <div class="tool-params">
+                                    <h5 class="text-sm font-semibold text-cyan-400 mb-2">关键参数：</h5>
+                                    <ul class="text-sm text-gray-500 space-y-1">
+                                        <li><code>title</code> - 对话主题（必需）</li>
+                                        <li><code>tags</code> - 用户自定义标签</li>
+                                        <li><code>importance</code> - 重要性等级(1-5)</li>
+                                        <li><code>ai_summary</code> - AI自动生成摘要</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tool-card anim-on-scroll">
+                            <div class="tool-header">
+                                <div class="tool-icon"><i data-lucide="search"></i></div>
+                                <div>
+                                    <h4 class="tool-title">search-knowledge</h4>
+                                    <p class="tool-subtitle">AI语义搜索</p>
+                                </div>
+                            </div>
+                            <div class="tool-content">
+                                <p class="text-gray-400 mb-4">使用三层智能搜索算法，精准检索相关历史对话和解决方案。</p>
+                                <div class="tool-params">
+                                    <h5 class="text-sm font-semibold text-cyan-400 mb-2">搜索层次：</h5>
+                                    <ul class="text-sm text-gray-500 space-y-1">
+                                        <li>🎯 <strong>精确匹配</strong> - 标题和关键词</li>
+                                        <li>🏷️ <strong>标签过滤</strong> - 技术标签分类</li>
+                                        <li>🧠 <strong>语义匹配</strong> - AI理解内容相关性</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tool-card anim-on-scroll">
+                            <div class="tool-header">
+                                <div class="tool-icon"><i data-lucide="brain-circuit"></i></div>
+                                <div>
+                                    <h4 class="tool-title">inject-context</h4>
+                                    <p class="tool-subtitle">智能上下文注入</p>
+                                </div>
+                            </div>
+                            <div class="tool-content">
+                                <p class="text-gray-400 mb-4">基于多因子相关性算法，自动为当前对话注入最相关的历史上下文。</p>
+                                <div class="tool-params">
+                                    <h5 class="text-sm font-semibold text-cyan-400 mb-2">相关性因子：</h5>
+                                    <ul class="text-sm text-gray-500 space-y-1">
+                                        <li>📝 文本相似度 (40%)</li>
+                                        <li>🏷️ 标签匹配 (25%)</li>
+                                        <li>⏰ 时间新鲜度 (15%)</li>
+                                        <li>⭐ 重要性等级 (15%)</li>
+                                        <li>✨ 质量因子 (5%)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tool-card anim-on-scroll">
+                            <div class="tool-header">
+                                <div class="tool-icon"><i data-lucide="recycle"></i></div>
+                                <div>
+                                    <h4 class="tool-title">extract-solutions</h4>
+                                    <p class="tool-subtitle">解决方案提取</p>
+                                </div>
+                            </div>
+                            <div class="tool-content">
+                                <p class="text-gray-400 mb-4">智能识别并提取高价值代码片段、方法和设计模式，建立可重用解决方案库。</p>
+                                <div class="tool-params">
+                                    <h5 class="text-sm font-semibold text-cyan-400 mb-2">提取类型：</h5>
+                                    <ul class="text-sm text-gray-500 space-y-1">
+                                        <li>💻 <strong>代码</strong> - 可执行代码片段</li>
+                                        <li>🛠️ <strong>方法</strong> - 解决问题的步骤</li>
+                                        <li>🎨 <strong>模式</strong> - 设计和架构模式</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Management Tools -->
+                    <div class="space-y-6">
+                        <h3 class="text-2xl font-bold text-white mb-6 flex items-center">
+                            <i data-lucide="settings" class="w-6 h-6 mr-3 text-cyan-400"></i>
+                            数据管理工具
+                        </h3>
+                        
+                        <div class="tool-card anim-on-scroll">
+                            <div class="tool-header">
+                                <div class="tool-icon"><i data-lucide="download"></i></div>
+                                <div>
+                                    <h4 class="tool-title">export-data</h4>
+                                    <p class="tool-subtitle">数据导出</p>
+                                </div>
+                            </div>
+                            <div class="tool-content">
+                                <p class="text-gray-400 mb-4">将所有对话、解决方案和索引导出到指定目录，支持数据迁移和分享。</p>
+                                <div class="tool-feature">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-cyan-900/30 text-cyan-300">
+                                        <i data-lucide="shield" class="w-3 h-3 mr-1"></i>
+                                        保持数据完整性
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tool-card anim-on-scroll">
+                            <div class="tool-header">
+                                <div class="tool-icon"><i data-lucide="upload"></i></div>
+                                <div>
+                                    <h4 class="tool-title">import-data</h4>
+                                    <p class="tool-subtitle">数据导入</p>
+                                </div>
+                            </div>
+                            <div class="tool-content">
+                                <p class="text-gray-400 mb-4">从导出的数据目录导入对话和解决方案，支持append和overwrite模式。</p>
+                                <div class="tool-feature">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-green-900/30 text-green-300">
+                                        <i data-lucide="check-circle" class="w-3 h-3 mr-1"></i>
+                                        数据验证保护
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tool-card anim-on-scroll">
+                            <div class="tool-header">
+                                <div class="tool-icon"><i data-lucide="database-backup"></i></div>
+                                <div>
+                                    <h4 class="tool-title">backup-data</h4>
+                                    <p class="tool-subtitle">一键备份</p>
+                                </div>
+                            </div>
+                            <div class="tool-content">
+                                <p class="text-gray-400 mb-4">创建完整的数据备份，包含元数据和统计信息，确保数据安全。</p>
+                                <div class="tool-feature">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-900/30 text-blue-300">
+                                        <i data-lucide="clock" class="w-3 h-3 mr-1"></i>
+                                        自定义备份名称
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tool-card anim-on-scroll">
+                            <div class="tool-header">
+                                <div class="tool-icon"><i data-lucide="refresh-ccw"></i></div>
+                                <div>
+                                    <h4 class="tool-title">restore-backup</h4>
+                                    <p class="tool-subtitle">数据恢复</p>
+                                </div>
+                            </div>
+                            <div class="tool-content">
+                                <p class="text-gray-400 mb-4">从指定备份恢复数据，包含完整性验证和预恢复备份功能。</p>
+                                <div class="tool-feature">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-purple-900/30 text-purple-300">
+                                        <i data-lucide="shield-check" class="w-3 h-3 mr-1"></i>
+                                        双重保护机制
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tool-card anim-on-scroll">
+                            <div class="tool-header">
+                                <div class="tool-icon"><i data-lucide="info"></i></div>
+                                <div>
+                                    <h4 class="tool-title">get-storage-info</h4>
+                                    <p class="tool-subtitle">存储信息</p>
+                                </div>
+                            </div>
+                            <div class="tool-content">
+                                <p class="text-gray-400 mb-4">获取存储系统详细信息，包括使用统计、健康状态和维护建议。</p>
+                                <div class="tool-feature">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-orange-900/30 text-orange-300">
+                                        <i data-lucide="activity" class="w-3 h-3 mr-1"></i>
+                                        实时监控面板
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tool Integration Example -->
+                <div class="mt-16 anim-on-scroll">
+                    <div class="bg-gray-900/60 rounded-xl border border-cyan-500/20 p-8">
+                        <h3 class="text-2xl font-bold text-white mb-6 text-center">
+                            <i data-lucide="workflow" class="w-6 h-6 mr-3 text-cyan-400 inline"></i>
+                            典型工作流程
+                        </h3>
+                        <div class="grid md:grid-cols-4 gap-4">
+                            <div class="workflow-step text-center">
+                                <div class="w-12 h-12 bg-cyan-900/50 text-cyan-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <span class="font-bold">1</span>
+                                </div>
+                                <p class="text-sm text-gray-400">开始新对话<br>AI自动注入相关上下文</p>
+                            </div>
+                            <div class="workflow-step text-center">
+                                <div class="w-12 h-12 bg-cyan-900/50 text-cyan-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <span class="font-bold">2</span>
+                                </div>
+                                <p class="text-sm text-gray-400">完成对话后<br>自动保存到知识库</p>
+                            </div>
+                            <div class="workflow-step text-center">
+                                <div class="w-12 h-12 bg-cyan-900/50 text-cyan-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <span class="font-bold">3</span>
+                                </div>
+                                <p class="text-sm text-gray-400">定期提取<br>可重用解决方案</p>
+                            </div>
+                            <div class="workflow-step text-center">
+                                <div class="w-12 h-12 bg-cyan-900/50 text-cyan-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <span class="font-bold">4</span>
+                                </div>
+                                <p class="text-sm text-gray-400">备份管理<br>确保数据安全</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How it works -->
+        <section id="how-it-works" class="py-24 sm:py-32 bg-gray-900/50">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16 anim-on-scroll">
+                    <h2 class="section-title">工作原理 (How It Works)</h2>
+                    <p class="section-subtitle">深入了解 Synapse MCP 的智能工作流</p>
+                </div>
+                <div class="max-w-6xl mx-auto anim-on-scroll border border-cyan-500/20 rounded-xl p-4 md:p-8">
+                    <pre class="mermaid">
+sequenceDiagram
+    participant User as 用户
+    participant AI Assistant as AI助手
+    participant Synapse MCP as Synapse MCP服务
+    participant LLM as 大语言模型
+
+    %% ------------------- 核心交互流程 -------------------
+    
+    User->>AI Assistant: 1. 发起查询 (例如: "如何用Python实现LRU缓存?")
+
+    AI Assistant->>Synapse MCP: 2. 调用 inject-context 接口并附带当前查询
+    
+    note over Synapse MCP: 内部执行三层智能搜索:<br/>- 精确匹配<br/>- 标签过滤<br/>- 内容语义匹配
+    
+    Synapse MCP-->>AI Assistant: 返回筛选出的"增强上下文" (相关历史记录、解决方案)
+
+    note over AI Assistant: 3. 构建增强型提示 (Prompt)<br/>整合"原始查询"与"增强上下文"
+
+    AI Assistant->>LLM: 4. 发送增强型提示
+
+    LLM-->>AI Assistant: 5. 基于增强上下文生成回答
+
+    AI Assistant-->>User: 呈现最终回答
+
+    %% ------------------- 对话后处理与知识沉淀 -------------------
+
+    AI Assistant->>Synapse MCP: 6. 调用 save-conversation 接口归档完整交互记录
+    
+    note over Synapse MCP: 存储对话, 并可能调用AI自动分析、提取标签
+
+    opt 7. 知识沉淀与提炼 (可选/异步)
+        note right of Synapse MCP: 此步骤由系统定时任务或管理员手动触发
+        Synapse MCP->>Synapse MCP: 调用 extract-solutions 从对话中提炼可复用知识<br/>(如代码片段、配置方法)
+    end
+                    </pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- Compatibility -->
+        <section id="compatibility" class="py-24 sm:py-32">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16 anim-on-scroll">
+                    <h2 class="section-title">兼容性支持</h2>
+                    <p class="section-subtitle">与主流AI客户端和开发环境无缝集成</p>
+                </div>
+                
+                <div class="grid lg:grid-cols-2 gap-12 items-start">
+                    <!-- MCP Clients -->
+                    <div class="anim-on-scroll">
+                        <h3 class="text-2xl font-bold text-white mb-8 flex items-center">
+                            <i data-lucide="cpu" class="w-6 h-6 mr-3 text-cyan-400"></i>
+                            支持的MCP客户端
+                        </h3>
+                        
+                        <div class="space-y-6">
+                            <div class="compatibility-card">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 bg-blue-900/50 text-blue-400 rounded-lg flex items-center justify-center mr-4">
+                                            <i data-lucide="monitor"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-lg font-semibold text-white">Claude Desktop</h4>
+                                            <p class="text-sm text-gray-400">Anthropic官方桌面应用</p>
+                                        </div>
+                                    </div>
+                                    <span class="px-3 py-1 bg-green-900/30 text-green-400 rounded-full text-sm font-medium">
+                                        完全支持
+                                    </span>
+                                </div>
+                                <p class="text-gray-500 text-sm">通过mcp.json配置文件直接集成，支持所有MCP工具和功能。</p>
+                            </div>
+
+                            <div class="compatibility-card">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 bg-purple-900/50 text-purple-400 rounded-lg flex items-center justify-center mr-4">
+                                            <i data-lucide="terminal"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-lg font-semibold text-white">MCP客户端SDK</h4>
+                                            <p class="text-sm text-gray-400">任何实现MCP协议的客户端</p>
+                                        </div>
+                                    </div>
+                                    <span class="px-3 py-1 bg-green-900/30 text-green-400 rounded-full text-sm font-medium">
+                                        标准兼容
+                                    </span>
+                                </div>
+                                <p class="text-gray-500 text-sm">遵循MCP标准协议，可与任何兼容的客户端无缝对接。</p>
+                            </div>
+
+                            <div class="compatibility-card">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 bg-orange-900/50 text-orange-400 rounded-lg flex items-center justify-center mr-4">
+                                            <i data-lucide="globe"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-lg font-semibold text-white">Web集成</h4>
+                                            <p class="text-sm text-gray-400">基于SSE/HTTP的Web应用</p>
+                                        </div>
+                                    </div>
+                                    <span class="px-3 py-1 bg-blue-900/30 text-blue-400 rounded-full text-sm font-medium">
+                                        开发中
+                                    </span>
+                                </div>
+                                <p class="text-gray-500 text-sm">支持SSE和HTTP传输，可集成到Web应用和在线AI服务。</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Requirements -->
+                    <div class="anim-on-scroll">
+                        <h3 class="text-2xl font-bold text-white mb-8 flex items-center">
+                            <i data-lucide="server" class="w-6 h-6 mr-3 text-cyan-400"></i>
+                            系统要求
+                        </h3>
+                        
+                        <div class="space-y-6">
+                            <div class="requirement-card">
+                                <h4 class="text-lg font-semibold text-white mb-4">运行环境</h4>
+                                <ul class="space-y-2 text-gray-400">
+                                    <li class="flex items-center">
+                                        <i data-lucide="check-circle" class="w-4 h-4 mr-3 text-green-400"></i>
+                                        Python 3.10+ (推荐3.11+)
+                                    </li>
+                                    <li class="flex items-center">
+                                        <i data-lucide="check-circle" class="w-4 h-4 mr-3 text-green-400"></i>
+                                        uv 包管理器 (推荐) 或 pip
+                                    </li>
+                                    <li class="flex items-center">
+                                        <i data-lucide="check-circle" class="w-4 h-4 mr-3 text-green-400"></i>
+                                        支持Windows、macOS、Linux
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div class="requirement-card">
+                                <h4 class="text-lg font-semibold text-white mb-4">硬件要求</h4>
+                                <ul class="space-y-2 text-gray-400">
+                                    <li class="flex items-center">
+                                        <i data-lucide="cpu" class="w-4 h-4 mr-3 text-cyan-400"></i>
+                                        CPU: 1核心+ (多核心更佳)
+                                    </li>
+                                    <li class="flex items-center">
+                                        <i data-lucide="hard-drive" class="w-4 h-4 mr-3 text-cyan-400"></i>
+                                        内存: 512MB+ (推荐1GB+)
+                                    </li>
+                                    <li class="flex items-center">
+                                        <i data-lucide="database" class="w-4 h-4 mr-3 text-cyan-400"></i>
+                                        存储: 100MB+ (取决于对话数量)
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div class="requirement-card">
+                                <h4 class="text-lg font-semibold text-white mb-4">性能指标</h4>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="text-center p-4 bg-gray-900/50 rounded-lg">
+                                        <div class="text-2xl font-bold text-cyan-400">< 200ms</div>
+                                        <div class="text-sm text-gray-400">搜索响应时间</div>
+                                    </div>
+                                    <div class="text-center p-4 bg-gray-900/50 rounded-lg">
+                                        <div class="text-2xl font-bold text-green-400">< 50KB</div>
+                                        <div class="text-sm text-gray-400">单个对话存储</div>
+                                    </div>
+                                    <div class="text-center p-4 bg-gray-900/50 rounded-lg">
+                                        <div class="text-2xl font-bold text-blue-400">10,000+</div>
+                                        <div class="text-sm text-gray-400">对话存储容量</div>
+                                    </div>
+                                    <div class="text-center p-4 bg-gray-900/50 rounded-lg">
+                                        <div class="text-2xl font-bold text-purple-400">95%+</div>
+                                        <div class="text-sm text-gray-400">搜索准确率</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Integration Guide -->
+                <div class="mt-16 anim-on-scroll">
+                    <div class="bg-gray-900/60 rounded-xl border border-cyan-500/20 p-8">
+                        <h3 class="text-2xl font-bold text-white mb-6 text-center">
+                            <i data-lucide="puzzle" class="w-6 h-6 mr-3 text-cyan-400 inline"></i>
+                            集成配置示例
+                        </h3>
+                        <div class="grid md:grid-cols-2 gap-8">
+                            <div>
+                                <h4 class="text-lg font-semibold text-white mb-4">Claude Desktop 配置</h4>
+                                <pre class="bg-gray-900 border border-gray-700 rounded-lg p-4 overflow-x-auto"><code class="text-sm text-gray-300">{
+  "mcpServers": {
+    "synapse": {
+      "command": "uv",
+      "args": [
+        "--directory", "/path/to/synapse-mcp",
+        "run", "mcp", "run", 
+        "/path/to/synapse-mcp/src/synapse/server.py"
+      ]
+    }
+  }
+}</code></pre>
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-semibold text-white mb-4">开发模式配置</h4>
+                                <pre class="bg-gray-900 border border-gray-700 rounded-lg p-4 overflow-x-auto"><code class="text-sm text-gray-300"># 启动开发服务器
+uv run mcp dev src/synapse/server.py
+
+# 使用MCP Inspector调试
+# 自动打开浏览器调试界面
+# 实时监控工具调用和响应</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ -->
+        <section id="faq" class="py-24 sm:py-32 bg-gray-900/30">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16 anim-on-scroll">
+                    <h2 class="section-title">常见问题</h2>
+                    <p class="section-subtitle">快速解答您的疑惑</p>
+                </div>
+                
+                <div class="max-w-4xl mx-auto">
+                    <div class="space-y-6">
+                        
+                        <div class="faq-item anim-on-scroll">
+                            <div class="faq-question" data-faq="setup">
+                                <div class="flex justify-between items-center cursor-pointer">
+                                    <h3 class="text-lg font-semibold text-white">如何快速开始使用 Synapse MCP？</h3>
+                                    <i data-lucide="chevron-down" class="w-5 h-5 text-cyan-400 transition-transform duration-300"></i>
+                                </div>
+                            </div>
+                            <div class="faq-answer hidden" data-answer="setup">
+                                <div class="pt-4 text-gray-400">
+                                    <p class="mb-4">只需三个简单步骤：</p>
+                                    <ol class="list-decimal list-inside space-y-2 ml-4">
+                                        <li>克隆项目并运行 <code class="bg-gray-800 px-2 py-1 rounded text-cyan-300">uv sync</code></li>
+                                        <li>启动服务器 <code class="bg-gray-800 px-2 py-1 rounded text-cyan-300">uv run mcp run src/synapse/server.py</code></li>
+                                        <li>在Claude Desktop中配置mcp.json文件</li>
+                                    </ol>
+                                    <p class="mt-4">详细步骤请参考上方的"快速上手"部分。</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="faq-item anim-on-scroll">
+                            <div class="faq-question" data-faq="data-safety">
+                                <div class="flex justify-between items-center cursor-pointer">
+                                    <h3 class="text-lg font-semibold text-white">我的对话数据安全吗？</h3>
+                                    <i data-lucide="chevron-down" class="w-5 h-5 text-cyan-400 transition-transform duration-300"></i>
+                                </div>
+                            </div>
+                            <div class="faq-answer hidden" data-answer="data-safety">
+                                <div class="pt-4 text-gray-400">
+                                    <p class="mb-4">绝对安全！Synapse MCP采用"本地优先"的设计原则：</p>
+                                    <ul class="list-disc list-inside space-y-2 ml-4">
+                                        <li>所有数据存储在您的本地文件系统</li>
+                                        <li>不会上传到任何云服务或第三方服务器</li>
+                                        <li>您拥有数据的完全控制权</li>
+                                        <li>支持加密备份和数据导出</li>
+                                        <li>开源代码，透明可审计</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="faq-item anim-on-scroll">
+                            <div class="faq-question" data-faq="performance">
+                                <div class="flex justify-between items-center cursor-pointer">
+                                    <h3 class="text-lg font-semibold text-white">Synapse MCP会影响AI助手的响应速度吗？</h3>
+                                    <i data-lucide="chevron-down" class="w-5 h-5 text-cyan-400 transition-transform duration-300"></i>
+                                </div>
+                            </div>
+                            <div class="faq-answer hidden" data-answer="performance">
+                                <div class="pt-4 text-gray-400">
+                                    <p class="mb-4">不会！Synapse MCP经过性能优化，确保最小延迟：</p>
+                                    <ul class="list-disc list-inside space-y-2 ml-4">
+                                        <li>搜索响应时间 &lt; 200ms</li>
+                                        <li>异步处理，不阻塞主对话流程</li>
+                                        <li>智能缓存机制减少重复计算</li>
+                                        <li>轻量级索引结构，内存占用小</li>
+                                        <li>可配置的相关性阈值，平衡质量和速度</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="faq-item anim-on-scroll">
+                            <div class="faq-question" data-faq="compatibility">
+                                <div class="flex justify-between items-center cursor-pointer">
+                                    <h3 class="text-lg font-semibold text-white">除了Claude Desktop，还支持其他AI助手吗？</h3>
+                                    <i data-lucide="chevron-down" class="w-5 h-5 text-cyan-400 transition-transform duration-300"></i>
+                                </div>
+                            </div>
+                            <div class="faq-answer hidden" data-answer="compatibility">
+                                <div class="pt-4 text-gray-400">
+                                    <p class="mb-4">是的！Synapse MCP基于标准MCP协议构建，支持：</p>
+                                    <ul class="list-disc list-inside space-y-2 ml-4">
+                                        <li>所有实现MCP协议的客户端</li>
+                                        <li>基于stdio、SSE、HTTP的传输方式</li>
+                                        <li>自定义客户端集成</li>
+                                        <li>Web应用和API集成（开发中）</li>
+                                    </ul>
+                                    <p class="mt-4">MCP协议的标准化确保了广泛的兼容性。</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="faq-item anim-on-scroll">
+                            <div class="faq-question" data-faq="storage">
+                                <div class="flex justify-between items-center cursor-pointer">
+                                    <h3 class="text-lg font-semibold text-white">对话数据会占用多少存储空间？</h3>
+                                    <i data-lucide="chevron-down" class="w-5 h-5 text-cyan-400 transition-transform duration-300"></i>
+                                </div>
+                            </div>
+                            <div class="faq-answer hidden" data-answer="storage">
+                                <div class="pt-4 text-gray-400">
+                                    <p class="mb-4">存储需求很小且可控：</p>
+                                    <ul class="list-disc list-inside space-y-2 ml-4">
+                                        <li>单个对话记录：约 5-50KB</li>
+                                        <li>1000个对话：约 10-50MB</li>
+                                        <li>索引文件：约 1-5MB</li>
+                                        <li>支持自动清理和归档</li>
+                                        <li>可配置存储限制和清理策略</li>
+                                    </ul>
+                                    <p class="mt-4">使用<code class="bg-gray-800 px-2 py-1 rounded text-cyan-300">get-storage-info</code>工具可随时查看详细使用情况。</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="faq-item anim-on-scroll">
+                            <div class="faq-question" data-faq="troubleshooting">
+                                <div class="flex justify-between items-center cursor-pointer">
+                                    <h3 class="text-lg font-semibold text-white">遇到问题如何排查？</h3>
+                                    <i data-lucide="chevron-down" class="w-5 h-5 text-cyan-400 transition-transform duration-300"></i>
+                                </div>
+                            </div>
+                            <div class="faq-answer hidden" data-answer="troubleshooting">
+                                <div class="pt-4 text-gray-400">
+                                    <p class="mb-4">常见问题排查步骤：</p>
+                                    <ol class="list-decimal list-inside space-y-2 ml-4">
+                                        <li>检查Python版本是否 ≥ 3.10</li>
+                                        <li>确认uv已正确安装并可用</li>
+                                        <li>验证项目依赖：<code class="bg-gray-800 px-2 py-1 rounded text-cyan-300">uv sync</code></li>
+                                        <li>检查mcp.json配置文件路径</li>
+                                        <li>查看服务器日志输出</li>
+                                        <li>使用开发模式：<code class="bg-gray-800 px-2 py-1 rounded text-cyan-300">uv run mcp dev</code></li>
+                                    </ol>
+                                    <p class="mt-4">如仍有问题，请在GitHub Issues中反馈，我们会及时协助解决。</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="faq-item anim-on-scroll">
+                            <div class="faq-question" data-faq="contribution">
+                                <div class="flex justify-between items-center cursor-pointer">
+                                    <h3 class="text-lg font-semibold text-white">如何参与项目贡献？</h3>
+                                    <i data-lucide="chevron-down" class="w-5 h-5 text-cyan-400 transition-transform duration-300"></i>
+                                </div>
+                            </div>
+                            <div class="faq-answer hidden" data-answer="contribution">
+                                <div class="pt-4 text-gray-400">
+                                    <p class="mb-4">欢迎各种形式的贡献：</p>
+                                    <ul class="list-disc list-inside space-y-2 ml-4">
+                                        <li>🐛 报告bug和问题</li>
+                                        <li>💡 提出功能建议和改进意见</li>
+                                        <li>📝 完善文档和使用指南</li>
+                                        <li>🔧 提交代码修复和新功能</li>
+                                        <li>🌍 帮助翻译到其他语言</li>
+                                        <li>📢 分享使用经验和案例</li>
+                                    </ul>
+                                    <p class="mt-4">请访问GitHub仓库了解贡献指南和开发环境设置。</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Start -->
+        <section id="quick-start" class="py-24 sm:py-32">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16 anim-on-scroll">
+                    <h2 class="section-title">怎么用？</h2>
+                    <p class="section-subtitle">只需四步，为您的 AI 助手装上“记忆核心”</p>
+                </div>
+                <div class="max-w-4xl mx-auto space-y-12">
+                    <div class="quick-start-step anim-on-scroll">
+                        <div class="step-number">1</div>
+                        <div>
+                            <h3 class="step-title">环境要求</h3>
+                            <p class="step-description">确保您的系统已安装：Python 3.10+ 和 `uv` (推荐) 或 `pip`。</p>
+                        </div>
+                    </div>
+                    <div class="quick-start-step anim-on-scroll">
+                        <div class="step-number">2</div>
+                        <div>
+                            <h3 class="step-title">下载并安装依赖</h3>
+                            <p class="step-description">克隆项目仓库并使用 `uv` 同步依赖项。</p>
+                            <pre><code class="language-shell">git clone https://github.com/cnzhihao/synapse-mcp.git
+cd synapse-mcp
+uv sync</code></pre>
+                        </div>
+                    </div>
+                    <div class="quick-start-step anim-on-scroll">
+                        <div class="step-number">3</div>
+                        <div>
+                            <h3 class="step-title">运行 Synapse MCP 服务器</h3>
+                            <p class="step-description">启动服务器。我们推荐在开发时使用热重载模式。</p>
+                            <pre><code class="language-shell"># 运行生产模式
+uv run mcp run src/synapse/server.py
+
+# 运行开发模式 (带热重载)
+uv run mcp dev src/synapse/server.py</code></pre>
+                        </div>
+                    </div>
+                    <div class="quick-start-step anim-on-scroll">
+                        <div class="step-number">4</div>
+                        <div>
+                            <h3 class="step-title">配置您的 MCP 客户端</h3>
+                            <p class="step-description">在您的项目根目录或全局配置中创建 `mcp.json` 文件，指向 Synapse 服务器。</p>
+                            <pre><code class="language-json">{\n  "mcpServers": {\n    "synapse": {\n      "command": "uv",\n      "args": [\n        "--directory",\n        "/path/to/your/synapse-mcp",\n        "run",\n        "mcp",\n        "run",\n        "/path/to/your/synapse-mcp/src/synapse/server.py"\n      ]\n    }\n  }\n}</code></pre>
+                            <p class="mt-2 text-sm text-yellow-400">请务必将 <code>/path/to/your/synapse-mcp</code> 替换为项目的实际路径。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA -->
+        <section id="cta" class="py-24 sm:py-32">
+            <div class="container mx-auto px-6 text-center anim-on-scroll">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">立即升级您的 AI 伙伴</h2>
+                <p class="max-w-2xl mx-auto text-lg text-gray-400 mb-8">
+                    不要再让宝贵的想法和解决方案随对话窗口的关闭而消失。立即安装 Synapse MCP，开始构建一个真正属于您的、不断进化的 AI 编程大脑。
+                </p>
+                <a href="https://github.com/cnzhihao/synapse-mcp" target="_blank" class="btn btn-primary btn-lg">
+                    <i data-lucide="github" class="w-6 h-6 mr-3"></i> 前往 GitHub 开始使用
+                </a>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-cyan-500/20 py-8">
+        <div class="container mx-auto px-6 text-center text-gray-500">
+            <div class="flex justify-center space-x-6 mb-4">
+                <a href="https://github.com/cnzhihao/synapse-mcp" target="_blank" class="hover:text-cyan-400 transition-colors">GitHub 仓库</a>
+                <a href="https://github.com/cnzhihao/synapse-mcp/issues" target="_blank" class="hover:text-cyan-400 transition-colors">报告问题</a>
+            </div>
+            <p>基于 <a href="https://github.com/cnzhihao/mcp" target="_blank" class="underline hover:text-cyan-400 transition-colors">Model Context Protocol (MCP)</a> 构建</p>
+            <p class="mt-2 text-sm">Copyright © 2025 cnzhihao. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
