@@ -17,8 +17,12 @@ JSON文件存储和目录管理系统 for Synapse MCP.
 """
 
 import json
-import fcntl
 import os
+try:
+    import fcntl
+except ImportError:
+    # fcntl is not available on Windows
+    fcntl = None
 import shutil
 from datetime import datetime, date
 from pathlib import Path
@@ -151,7 +155,7 @@ class FileManager:
             
             try:
                 # 尝试获取文件系统级锁定
-                if os.name == 'posix':
+                if os.name == 'posix' and fcntl:
                     # Unix系统使用fcntl
                     lock_type = fcntl.LOCK_EX if 'w' in mode or 'a' in mode else fcntl.LOCK_SH
                     fcntl.flock(file_obj.fileno(), lock_type | fcntl.LOCK_NB)
@@ -172,7 +176,7 @@ class FileManager:
                 
             finally:
                 # 释放文件系统级锁定
-                if os.name == 'posix':
+                if os.name == 'posix' and fcntl:
                     fcntl.flock(file_obj.fileno(), fcntl.LOCK_UN)
                 elif os.name == 'nt':
                     import msvcrt
