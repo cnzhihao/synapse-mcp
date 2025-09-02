@@ -590,6 +590,107 @@ class FileManager:
             logger.error(f"加载解决方案异常 {solution_id}: {e}")
             return None
     
+    def load_all_solutions(self) -> List[Solution]:
+        """
+        批量加载所有解决方案
+        
+        此方法提供了一种高效的方式来加载solutions目录中的所有解决方案，
+        包括单独的解决方案文件和批量提取文件。
+        
+        Returns:
+            List[Solution]: 所有解决方案的列表，已去重
+        """
+        solutions = []
+        solutions_dir = self.storage_paths.get_solutions_dir()
+        
+        if not solutions_dir.exists():
+            logger.warning(f"解决方案目录不存在: {solutions_dir}")
+            return []
+        
+        try:
+            # 加载单个解决方案文件 (sol_*.json)
+            for solution_file in solutions_dir.glob("sol_*.json"):
+                try:
+                    solution = self.load_solution(solution_file.stem)
+                    if solution:
+                        solutions.append(solution)
+                except Exception as e:
+                    logger.warning(f"加载单个解决方案文件失败 {solution_file}: {e}")
+                    continue
+            
+            # 加载批量提取的解决方案文件 (extracted_*_solutions_*.json)
+            for batch_file in solutions_dir.glob("extracted_*_solutions_*.json"):
+                try:
+                    with self._file_lock(batch_file, 'r') as f:
+                        data = json.load(f)
+                        
+                    batch_solutions = data.get("solutions", [])
+                    for sol_data in batch_solutions:
+                        try:
+                            solution = Solution.from_dict(sol_data)
+                            solutions.append(solution)
+                        except Exception as e:
+                            logger.warning(f"解析批量解决方案失败 {batch_file}: {e}")
+                            continue
+                            
+                except Exception as e:
+                    logger.warning(f"加载批量解决方案文件失败 {batch_file}: {e}")
+                    continue
+            
+            # 去重 - 基于ID，保留引用次数最高的版本
+            unique_solutions = {}
+            for solution in solutions:
+                if solution.id not in unique_solutions:
+                    unique_solutions[solution.id] = solution
+                else:
+                    # 保留引用次数更高的版本
+                    if solution.reference_count > unique_solutions[solution.id].reference_count:
+                        unique_solutions[solution.id] = solution
+            
+            result = list(unique_solutions.values())
+            logger.info(f"成功加载 {len(result)} 个解决方案（去重后）")
+            return result
+            
+        except Exception as e:
+            logger.error(f"批量加载解决方案失败: {e}")
+            return []
+    
+    def update_solution_reference_count(self, solution_id: str) -> bool:
+        """
+        更新解决方案的引用计数
+        
+        此方法提供了一种高效的方式来增加解决方案的引用计数，
+        无需完整加载和保存解决方案对象。
+        
+        Args:
+            solution_id: 要更新的解决方案ID
+            
+        Returns:
+            bool: 更新是否成功
+        """
+        try:
+            # 加载解决方案
+            solution = self.load_solution(solution_id)
+            if not solution:
+                logger.warning(f"无法找到解决方案用于引用计数更新: {solution_id}")
+                return False
+            
+            # 增加引用计数和更新时间
+            solution.increment_reference()
+            
+            # 保存更新后的解决方案
+            success = self.save_solution(solution)
+            if success:
+                logger.debug(f"解决方案引用计数更新成功: {solution_id} -> {solution.reference_count}")
+            else:
+                logger.error(f"保存解决方案引用计数失败: {solution_id}")
+            
+            return success
+            
+        except Exception as e:
+            logger.error(f"更新解决方案引用计数异常 {solution_id}: {e}")
+            return False
+    
     def get_storage_statistics(self) -> StorageStats:
         """
         获取存储统计信息

@@ -21,7 +21,7 @@ class Solution(BaseModel):
     解决方案数据模型
     
     用于存储从对话中提取的可重用代码片段、解决方案和设计模式。
-    每个解决方案都有类型分类、内容描述和可重用性评分。
+    每个解决方案都有类型分类、内容描述、可重用性评分和引用计数。
     
     Attributes:
         id: 唯一标识符，自动生成UUID格式
@@ -29,7 +29,10 @@ class Solution(BaseModel):
         content: 解决方案的实际内容
         language: 编程语言（仅对代码类型有效）
         description: 解决方案的描述和使用场景
+        tags: 标签列表，用于分类和搜索，与ConversationRecord保持一致
         reusability_score: 可重用性评分，0.0-1.0之间，越高表示越容易重用
+        reference_count: 引用计数，追踪解决方案被上下文注入使用的次数
+        last_referenced: 最后引用时间，用于时间权重计算
     """
     
     id: str = Field(default_factory=lambda: f"sol_{uuid.uuid4().hex[:8]}")
@@ -37,7 +40,37 @@ class Solution(BaseModel):
     content: str = Field(..., min_length=1, description="解决方案内容")
     language: Optional[str] = Field(None, description="编程语言（代码类型时使用）")
     description: str = Field(..., min_length=1, description="解决方案描述")
+    tags: List[str] = Field(default_factory=list, description="标签列表，用于分类和搜索")
     reusability_score: float = Field(..., ge=0.0, le=1.0, description="可重用性评分")
+    reference_count: int = Field(default=0, ge=0, description="引用计数")
+    last_referenced: Optional[datetime] = Field(default=None, description="最后引用时间")
+    
+    @field_validator('tags')
+    @classmethod
+    def validate_tags(cls, v):
+        """
+        验证和清理标签
+        
+        - 移除重复标签
+        - 转换为小写
+        - 移除空字符串
+        - 限制标签长度
+        """
+        if not v:
+            return []
+        
+        # 清理标签：去重、小写化、移除空白
+        cleaned_tags = []
+        seen = set()
+        
+        for tag in v:
+            if isinstance(tag, str):
+                clean_tag = tag.strip().lower()
+                if clean_tag and len(clean_tag) <= 50 and clean_tag not in seen:
+                    cleaned_tags.append(clean_tag)
+                    seen.add(clean_tag)
+        
+        return cleaned_tags
     
     @field_validator('language')
     @classmethod
@@ -64,14 +97,61 @@ class Solution(BaseModel):
             raise ValueError('可重用性评分必须在0.0-1.0之间')
         return round(v, 2)  # 保留2位小数
     
+    def increment_reference(self) -> None:
+        """
+        增加引用计数
+        
+        当解决方案被上下文注入系统使用时调用此方法。
+        同时更新最后引用时间。
+        """
+        self.reference_count += 1
+        self.last_referenced = datetime.now()
+    
+    def get_reference_weight(self, max_references: int = 100) -> float:
+        """
+        简化的引用计数权重计算
+        
+        Returns:
+            float: 直接返回引用计数，不再做复杂的数学变换
+        """
+        return float(self.reference_count)
+    
+    def get_recency_weight(self, max_days: int = 365) -> float:
+        """
+        简化的新鲜度权重计算
+        
+        Returns:
+            float: 简单地返回是否有最近引用：有为1.0，无为0.0
+        """
+        return 1.0 if self.last_referenced else 0.0
+    
     def to_dict(self) -> Dict[str, Any]:
         """将Solution对象转换为字典格式"""
-        return self.model_dump()
+        data = self.model_dump()
+        # 确保datetime字段正确序列化
+        if self.last_referenced:
+            data['last_referenced'] = self.last_referenced.isoformat()
+        return data
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Solution':
         """从字典创建Solution对象"""
-        return cls(**data)
+        data_copy = data.copy()
+        
+        # 处理datetime字段的反序列化
+        if 'last_referenced' in data_copy and data_copy['last_referenced']:
+            if isinstance(data_copy['last_referenced'], str):
+                data_copy['last_referenced'] = datetime.fromisoformat(data_copy['last_referenced'])
+        
+        # 确保向后兼容：为没有新字段的旧数据设置默认值
+        if 'reference_count' not in data_copy:
+            data_copy['reference_count'] = 0
+        if 'last_referenced' not in data_copy:
+            data_copy['last_referenced'] = None
+        if 'tags' not in data_copy:
+            data_copy['tags'] = []
+            
+        return cls(**data_copy)
 
 
 class ConversationRecord(BaseModel):
@@ -393,6 +473,7 @@ def create_solution(
     content: str,
     description: str,
     language: Optional[str] = None,
+    tags: Optional[List[str]] = None,
     reusability_score: float = 0.5
 ) -> Solution:
     """
@@ -403,6 +484,7 @@ def create_solution(
         content: 内容
         description: 描述
         language: 编程语言（代码类型时必需）
+        tags: 标签列表，用于分类和搜索
         reusability_score: 可重用性评分
         
     Returns:
@@ -413,5 +495,6 @@ def create_solution(
         content=content,
         description=description,
         language=language,
+        tags=tags or [],
         reusability_score=reusability_score
     )

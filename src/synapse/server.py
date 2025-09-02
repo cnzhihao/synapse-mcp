@@ -355,34 +355,48 @@ async def save_conversation(
 @mcp.tool()
 async def search_knowledge(
     query: str,
-    category: str = None,
-    tags: list[str] = None,
-    time_range: str = "all",
-    importance_min: int = None,
+    search_in: str = "all",
     limit: int = 10,
-    include_content: bool = False,
     ctx: Context = None
 ) -> dict:
     """
-    AI语义搜索：在知识库中搜索相关的对话记录和解决方案
+    简单grep搜索工具 - 让AI提供关键词，工具负责搜索
     
-    使用AI语义理解进行智能搜索，完全替换传统的关键词匹配：
-    1. 候选获取 - 获取所有对话并应用基础过滤条件
-    2. 智能分类 - 按重要性、时间、标签等维度组织候选数据
-    3. AI任务生成 - 为调用方AI生成清晰的语义匹配任务
+    🤖 AI使用建议：
+    - 根据用户问题生成多个不同的关键词进行搜索
+    - 尝试中英文、技术术语的不同表达方式
+    - 建议连续搜索 2-3 次不同关键词以提高召回率
+    
+    示例用法：
+    用户问："Python异步编程错误处理"
+    AI应该搜索：
+    1. search_knowledge("Python async exception")
+    2. search_knowledge("异步 错误处理")
+    3. search_knowledge("asyncio try except")
     
     Args:
-        query: 搜索查询（支持自然语言）（必需）
-        category: 内容分类过滤（可选）
-        tags: 标签过滤列表（可选）
-        time_range: 时间范围过滤 ("week", "month", "all")
-        importance_min: 最小重要性等级 (1-5)
-        limit: 期望返回结果数量 (1-50)
-        include_content: 是否包含内容预览
+        query: 搜索关键词（由AI理解用户问题后生成）（必需）
+        search_in: 搜索范围 ("title", "content", "tags", "all")
+        limit: 返回结果数量 (1-50)
         ctx: MCP上下文对象
         
     Returns:
-        dict: AI语义搜索的结构化候选数据，包含AI任务指令
+        dict: 搜索结果和AI后续搜索建议
+        {
+            "query": "用户输入的关键词",
+            "total_found": 5,
+            "search_area": "all",
+            "results": [
+                {
+                    "id": "sol_001",
+                    "title": "...",
+                    "snippet": "匹配内容片段...",
+                    "created_at": "2024-01-01T12:00:00Z",
+                    "match_reason": "标题匹配 'async'"
+                }
+            ],
+            "suggestion": "建议AI尝试搜索其他相关关键词如 'asyncio', '异步编程'"
+        }
     """
     try:
         if ctx:
@@ -397,66 +411,45 @@ async def search_knowledge(
             raise RuntimeError("无法获取SearchKnowledgeTool实例，请检查服务器配置")
         
         if ctx:
-            await ctx.info("组织候选数据供AI语义匹配...")
+            await ctx.info("执行简单文本搜索...")
         
-        # 使用SearchKnowledgeTool进行AI语义搜索
+        # 使用简化的SearchKnowledgeTool进行grep搜索
         result = search_tool.search_knowledge(
             query=query.strip(),
-            category=category,
-            tags=tags,
-            time_range=time_range,
-            importance_min=importance_min,
-            limit=limit,
-            include_content=include_content
+            search_in=search_in,
+            limit=limit
         )
         
         # 检查搜索结果
         if not result:
             raise RuntimeError("搜索工具返回空结果")
         
-        processing_time = result.get("metadata", {}).get("processing_time_ms", 0)
-        total_candidates = result.get("total_candidates", 0)
+        processing_time = result.get("processing_time_ms", 0)
+        total_found = result.get("total_found", 0)
         
         if ctx:
-            await ctx.info(f"候选数据准备完成: {total_candidates} 个候选，耗时 {processing_time:.2f}ms")
-            await ctx.info("请查看AI任务指令进行语义匹配")
+            await ctx.info(f"grep搜索完成: 找到 {total_found} 个结果，耗时 {processing_time:.2f}ms")
+            if result.get("suggestion"):
+                await ctx.info(f"AI建议: {result['suggestion']}")
         
-        # 直接返回AI语义搜索的结构化结果
+        # 返回简化的搜索结果
         return result
         
     except Exception as e:
         error_msg = str(e)
         if ctx:
-            await ctx.error(f"AI语义搜索失败: {error_msg}")
+            await ctx.error(f"简化grep搜索失败: {error_msg}")
         
-        logger.error(f"AI语义搜索失败 - 查询: '{query}', 错误: {error_msg}", exc_info=True)
+        logger.error(f"简化grep搜索失败 - 查询: '{query}', 错误: {error_msg}", exc_info=True)
         
         # 返回错误信息
         return {
-            "search_mode": "ai_semantic",
             "query": query,
+            "total_found": 0,
+            "search_area": search_in,
+            "results": [],
             "error": error_msg,
-            "error_type": type(e).__name__,
-            "total_candidates": 0,
-            "candidate_categories": {
-                "high_importance": [],
-                "recent_discussions": [],
-                "tagged_content": [],
-                "general_conversations": []
-            },
-            "ai_task": f"搜索失败: {error_msg}",
-            "filters_applied": {
-                "category": category,
-                "tags": tags,
-                "time_range": time_range,
-                "importance_min": importance_min,
-                "limit": limit
-            },
-            "metadata": {
-                "processing_time_ms": 0,
-                "include_content_preview": include_content,
-                "error": True
-            }
+            "processing_time_ms": 0
         }
 
 
@@ -470,24 +463,24 @@ async def inject_context(
     ctx: Context = None
 ) -> dict:
     """
-    向当前对话注入相关的历史上下文
+    向当前对话注入相关的解决方案上下文
     
-    使用智能上下文注入系统，基于多因子相关性算法从历史对话和解决方案中
-    找到最相关的内容，为当前对话提供有价值的背景信息和参考资料。
+    使用智能解决方案注入系统，基于多因子相关性算法从已提取的解决方案中
+    找到最相关的代码片段、方法和模式，为当前对话提供有价值的技术参考。
     
     相关性计算基于以下因素：
-    - 文本相似度（40%）：关键词匹配和内容重叠分析
+    - 文本相似度（35%）：关键词匹配和内容重叠分析
     - 标签匹配（25%）：基于技术标签的相似度
-    - 时间新鲜度（15%）：较新内容的加权优势  
-    - 重要性等级（15%）：高重要性内容的优先级
-    - 质量因子（5%）：内容质量和完整性评估
+    - 引用计数加成（25%）：基于解决方案使用频率的权重
+    - 可重用性加成（10%）：基于解决方案质量评分
+    - 最近引用加成（5%）：基于最近使用时间的权重
     
     Args:
         current_query: 当前用户的查询或问题（必需）
-        max_items: 最大注入的上下文项数量 (1-10，默认3)
+        max_items: 最大注入的解决方案数量 (1-10，默认3)
         relevance_threshold: 相关性阈值 (0.0-1.0，默认0.7)
-        include_solutions: 是否包含解决方案内容（默认True）
-        include_conversations: 是否包含对话记录（默认True）
+        include_solutions: 是否包含解决方案内容（保留兼容性，默认True）
+        include_conversations: 已废弃，保留向后兼容性
         ctx: MCP上下文对象
         
     Returns:
