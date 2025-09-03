@@ -130,6 +130,90 @@ async def app_lifespan(_: FastMCP):
 # Create FastMCP server instance
 mcp = FastMCP("synapse-mcp", lifespan=app_lifespan)
 
+# ==================== Internal Analysis Functions ====================
+
+async def _generate_conversation_analysis(title: str, ctx = None) -> dict:
+    """
+    Generate automatic conversation analysis when AI analysis is not provided.
+    
+    This function provides a fallback mechanism to ensure save_conversation
+    can work even when AI forgets to call the conversation_analysis_prompt.
+    
+    Args:
+        title: Conversation title
+        ctx: MCP context for logging
+        
+    Returns:
+        dict: Analysis results with summary, tags, importance, category, solutions
+    """
+    if ctx:
+        await ctx.info("Generating automatic conversation analysis...")
+    
+    # Basic analysis based on title keywords
+    title_lower = title.lower()
+    
+    # Determine category from title keywords
+    category_keywords = {
+        "problem-solving": ["bug", "fix", "error", "issue", "problem", "solve", "debug", "troubleshoot"],
+        "learning": ["learn", "tutorial", "how to", "understand", "explain", "guide", "lesson"],
+        "implementation": ["implement", "create", "build", "develop", "make", "add", "feature"],
+        "code-review": ["review", "refactor", "improve", "optimize", "clean", "quality"],
+        "debugging": ["debug", "trace", "investigate", "diagnose", "crash", "exception"]
+    }
+    
+    category = "general"
+    for cat, keywords in category_keywords.items():
+        if any(keyword in title_lower for keyword in keywords):
+            category = cat
+            break
+    
+    # Extract basic tags from title
+    technical_keywords = [
+        "python", "javascript", "java", "cpp", "c++", "react", "vue", "angular", "nodejs", "node.js",
+        "django", "flask", "fastapi", "spring", "api", "database", "sql", "mongodb", "redis",
+        "docker", "kubernetes", "git", "github", "aws", "azure", "gcp", "linux", "windows",
+        "machine learning", "ml", "ai", "data science", "pandas", "numpy", "tensorflow", "pytorch"
+    ]
+    
+    tags = []
+    for keyword in technical_keywords:
+        if keyword in title_lower:
+            tags.append(keyword.replace(" ", "_"))
+    
+    # Add category as tag if not already present
+    if category != "general" and category not in tags:
+        tags.append(category.replace("-", "_"))
+    
+    # Determine importance based on keywords
+    high_importance_keywords = ["critical", "urgent", "important", "security", "performance", "production"]
+    low_importance_keywords = ["minor", "cosmetic", "simple", "basic"]
+    
+    if any(keyword in title_lower for keyword in high_importance_keywords):
+        importance = 5
+    elif any(keyword in title_lower for keyword in low_importance_keywords):
+        importance = 2
+    else:
+        importance = 3
+    
+    # Generate basic summary
+    summary = f"Discussion about {title}. This conversation was automatically analyzed and categorized as {category}."
+    if tags:
+        summary += f" Related technologies: {', '.join(tags[:3])}."
+    
+    analysis_result = {
+        "summary": summary,
+        "tags": tags[:5],  # Limit to 5 tags
+        "importance": importance,
+        "category": category,
+        "solutions": [],  # Basic analysis doesn't extract solutions
+        "auto_generated": True
+    }
+    
+    if ctx:
+        await ctx.info(f"Auto-analysis completed: category={category}, tags={len(tags)}, importance={importance}")
+    
+    return analysis_result
+
 # ==================== MCP Prompt Templates ====================
 
 @mcp.prompt(title="Conversation Analysis")
@@ -213,18 +297,18 @@ async def save_conversation(
     ctx: Context = None
 ) -> dict:
     """
-    Save AI conversation records to knowledge base based on current conversation context.
+    Save AI conversation records to knowledge base with automatic analysis.
     
-    This tool works with AI analysis results to store conversation metadata:
-    - Accept user-specified or AI-analyzed metadata
-    - Extract content from current conversation context automatically
-    - Detect and notify duplicate conversations
-    - Update search indexes for fast queries
+    This tool automatically handles conversation analysis and storage:
+    - Auto-generates analysis if AI analysis results are not provided
+    - Accepts user-specified or AI-analyzed metadata  
+    - Extracts content from current conversation context automatically
+    - Detects and notifies duplicate conversations
+    - Updates search indexes for fast queries
     
-    Recommended usage workflow:
-    1. User says: "帮我保存今天的对话"
-    2. System calls conversation_analysis_prompt to analyze current context
-    3. System passes AI analysis results to this tool for saving
+    Usage workflows:
+    1. Simple: User says "保存对话" → AI calls save_conversation(title="...") → Auto-analysis generated
+    2. Advanced: AI calls conversation_analysis_prompt first, then passes results to save_conversation
     
     Args:
         title: Conversation topic title (required)
@@ -232,11 +316,11 @@ async def save_conversation(
         category: User-specified conversation category (optional)
         importance: User-specified importance level 1-5 (optional)
         check_duplicates: Whether to check for duplicate conversations (default True)
-        ai_summary: AI-generated summary from conversation_analysis_prompt
-        ai_tags: AI-extracted tag list from conversation_analysis_prompt
-        ai_importance: AI-assessed importance from conversation_analysis_prompt
-        ai_category: AI-inferred category from conversation_analysis_prompt
-        ai_solutions: AI-extracted solution list from conversation_analysis_prompt
+        ai_summary: AI-generated summary (optional - will auto-generate if not provided)
+        ai_tags: AI-extracted tag list (optional - will auto-generate if not provided)  
+        ai_importance: AI-assessed importance (optional - will auto-generate if not provided)
+        ai_category: AI-inferred category (optional - will auto-generate if not provided)
+        ai_solutions: AI-extracted solution list (optional - will auto-generate if not provided)
         ctx: MCP context object for progress reporting
         
     Returns:
@@ -255,8 +339,21 @@ async def save_conversation(
         if not title or not title.strip():
             raise ValueError("Conversation title cannot be empty")
         
+        # Auto-generate analysis if not provided
         if not ai_summary:
-            raise ValueError("AI analysis results are required. Please first call conversation_analysis_prompt to analyze the current conversation.")
+            if ctx:
+                await ctx.info("AI analysis not provided, auto-generating conversation analysis...")
+            
+            # Generate automatic analysis using built-in logic
+            auto_analysis = await _generate_conversation_analysis(title, ctx)
+            ai_summary = auto_analysis.get("summary", f"Conversation about: {title}")
+            ai_tags = auto_analysis.get("tags", [])
+            ai_importance = auto_analysis.get("importance", 3)
+            ai_category = auto_analysis.get("category", "general")
+            ai_solutions = auto_analysis.get("solutions", [])
+            auto_analysis_used = True
+        else:
+            auto_analysis_used = False
         
         if importance is not None and (importance < 1 or importance > 5):
             raise ValueError("Importance level must be between 1-5")
@@ -306,34 +403,41 @@ async def save_conversation(
                 await ctx.info(f"检测到 {duplicates_count} 个相似对话")
             
             await ctx.info(f"对话保存成功: {conversation_info.get('id', 'Unknown')}")
-            await ctx.info(f"自动提取了 {conversation_info.get('auto_tags_count', 0)} 个标签")
-        
-        # 构建返回结果（保持与原API兼容，同时提供更多信息）
-        return {
-            # 基本信息（保持兼容）
-            "id": conversation_info.get("id"),
-            "title": conversation_info.get("title"),
-            "stored_at": conversation_info.get("created_at"),
-            "tags": conversation_info.get("tags", []),
-            "category": conversation_info.get("category", "general"),
-            "importance": conversation_info.get("importance", 3),
-            "searchable": True,
             
-            # 扩展信息
-            "summary": conversation_info.get("summary", ""),
-            "auto_generated": {
-                "tags_count": conversation_info.get("auto_tags_count", 0),
-                "user_tags_count": conversation_info.get("user_tags_count", 0),
+            if auto_analysis_used:
+                await ctx.info(f"使用自动分析生成了摘要和 {len(ai_tags)} 个标签")
+            else:
+                await ctx.info(f"使用AI提供的分析结果，包含 {conversation_info.get('auto_tags_count', 0)} 个标签")
+        
+        # 构建返回结果（与其他工具风格保持一致）
+        return {
+            "success": True,
+            "conversation": {
+                "id": conversation_info.get("id"),
+                "title": conversation_info.get("title"),
+                "summary": conversation_info.get("summary", ""),
+                "category": conversation_info.get("category", "general"),
+                "importance": conversation_info.get("importance", 3),
+                "tags": conversation_info.get("tags", []),
+                "created_at": conversation_info.get("created_at"),
+                "searchable": True
+            },
+            "analysis": {
+                "auto_generated": auto_analysis_used,
+                "method": "自动分析" if auto_analysis_used else "AI提供分析",
+                "tags_extracted": conversation_info.get("auto_tags_count", 0),
+                "user_tags_added": conversation_info.get("user_tags_count", 0),
                 "solutions_found": conversation_info.get("solutions_count", 0)
             },
-            "duplicate_detection": {
+            "duplicates": {
                 "checked": check_duplicates,
-                "duplicates_found": duplicates_count,
-                "duplicate_ids": result.get("duplicate_ids", [])
+                "found": duplicates_count,
+                "similar_ids": result.get("duplicate_ids", [])
             },
-            "storage_info": {
-                "file_path": result.get("storage_path"),
-                "indexed": True  # 索引已更新
+            "storage": {
+                "path": result.get("storage_path"),
+                "indexed": True,
+                "status": "已保存"
             }
         }
         
@@ -349,7 +453,14 @@ async def save_conversation(
             "success": False,
             "error": error_msg,
             "error_type": type(e).__name__,
-            "searchable": False
+            "conversation": None,
+            "analysis": {
+                "auto_generated": False,
+                "method": "分析失败",
+                "tags_extracted": 0,
+                "user_tags_added": 0,
+                "solutions_found": 0
+            }
         }
 
 @mcp.tool()
