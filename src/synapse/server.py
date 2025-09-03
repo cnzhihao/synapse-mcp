@@ -252,12 +252,18 @@ async def save_conversation(
         category: 用户指定的对话分类（可选）
         importance: 用户指定的重要性等级 1-5（可选）
         check_duplicates: 是否检查重复对话（默认True）
-        ai_summary: AI生成的摘要（可选 - 如果未提供会自动生成）
-        ai_tags: AI提取的标签列表（可选 - 如果未提供会自动生成）
-        ai_importance: AI评估的重要性（可选 - 如果未提供会自动生成）
-        ai_category: AI推断的分类（可选 - 如果未提供会自动生成）
-        ai_solutions: AI提取的解决方案列表（可选 - 如果未提供会自动生成）
+        ai_summary: AI生成的摘要（必需 - 必须先调用conversation_analysis_prompt获取）
+        ai_tags: AI提取的标签列表（可选 - 建议提供以提高质量）
+        ai_importance: AI评估的重要性（可选 - 建议提供以提高质量）
+        ai_category: AI推断的分类（可选 - 建议提供以提高质量）
+        ai_solutions: AI提取的解决方案列表（可选 - 建议提供以提高质量）
         ctx: MCP上下文对象，用于进度报告
+        
+    **重要使用说明：**
+    1. ai_summary 参数是必需的，不能为空
+    2. 使用前必须先调用 conversation_analysis_prompt 工具获取AI分析模板
+    3. 将AI分析结果作为参数传入，确保保存完整的对话上下文
+    4. 其他AI参数虽然可选，但强烈建议提供以确保最佳的分类和搜索效果
         
     返回结果：
         dict: 包含详细保存结果信息的字典：
@@ -1574,7 +1580,7 @@ async def extract_solutions(
     ctx: Context = None
 ) -> dict:
     """
-    从已保存的对话记录中提取解决方案并单独保存
+    从已保存的对话记录中提取解决方案并单独保存。在成功使用save_conversation保存完对话记录后即应立即使用本工具提取解决方案。
     
     这个工具从现有的对话记录中提取所有解决方案，进行质量评估和去重，
     然后将高质量的解决方案保存到独立的solutions目录中，便于后续查找和重用。

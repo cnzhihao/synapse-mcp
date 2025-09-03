@@ -429,6 +429,45 @@ class FileManager:
             logger.error(f"加载对话记录异常 {conversation_id}: {e}")
             return None
     
+    def _fix_conversation_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        修复对话数据中可能存在的兼容性问题
+        
+        Args:
+            data: 原始对话数据字典
+            
+        Returns:
+            Dict[str, Any]: 修复后的对话数据
+        """
+        # 修复solutions中的language字段问题
+        if 'solutions' in data and isinstance(data['solutions'], list):
+            for solution in data['solutions']:
+                if isinstance(solution, dict):
+                    # 如果是code类型但没有language，尝试推断或设置默认值
+                    if solution.get('type') == 'code' and not solution.get('language'):
+                        content = solution.get('content', '').lower()
+                        
+                        # 简单的语言推断
+                        if 'npx' in content or 'npm' in content or 'yarn' in content:
+                            solution['language'] = 'bash'
+                        elif 'def ' in content or 'import ' in content or 'python' in content:
+                            solution['language'] = 'python'
+                        elif 'function' in content or 'const ' in content or 'let ' in content:
+                            solution['language'] = 'javascript'
+                        elif '<?php' in content or 'php' in content:
+                            solution['language'] = 'php'
+                        elif '#include' in content or 'int main' in content:
+                            solution['language'] = 'c'
+                        elif 'public class' in content or 'java' in content:
+                            solution['language'] = 'java'
+                        else:
+                            # 如果无法推断，设置为通用的shell/bash
+                            solution['language'] = 'shell'
+                        
+                        logger.info(f"修复解决方案 {solution.get('id', 'unknown')} 的语言字段: {solution['language']}")
+        
+        return data
+    
     def _load_conversation_from_file(self, file_path: Path) -> Optional[ConversationRecord]:
         """
         从指定文件加载对话记录
@@ -442,7 +481,11 @@ class FileManager:
         try:
             with self._file_lock(file_path, 'r') as f:
                 data = json.load(f)
-                return ConversationRecord.from_dict(data)
+                
+            # 修复可能存在的数据问题
+            data = self._fix_conversation_data(data)
+            
+            return ConversationRecord.from_dict(data)
                 
         except Exception as e:
             logger.error(f"从文件加载对话记录失败 {file_path}: {e}")

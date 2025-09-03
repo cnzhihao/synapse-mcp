@@ -134,7 +134,9 @@ async def test_extract_solutions():
     if result3["success"]:
         print(f"    ✅ 批量提取完成: {result3['total_extracted']} 个高质量解决方案")
         print(f"    📈 处理了 {result3['conversations_processed']} 个对话")
-        print(f"    ⏱️ 处理时间: {result3['processing_time_ms']:.2f}ms")
+        # processing_time_ms 字段可能不存在，使用get方法获取
+        processing_time = result3['statistics'].get('processing_time_ms', 0)
+        print(f"    ⏱️ 处理时间: {processing_time:.2f}ms")
     else:
         print(f"    ❌ 批量提取失败: {result3['error']}")
     
