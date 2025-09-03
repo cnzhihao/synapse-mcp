@@ -223,12 +223,14 @@ async def save_conversation(
     ctx: Context = None
 ) -> dict:
     """
+    重要！当用户提出保存当前对话的时候必须调用此工具！
     将AI对话记录保存到知识库，确保保存完整对话上下文。
     
     **必需的使用流程：**
     1. 首先调用 conversation_analysis_prompt 获取分析模板
     2. 让AI分析当前完整的对话上下文（所有消息和代码）
     3. 将AI分析结果传递给此工具保存
+    4. 保存完成后，立即调用extract_solutions工具提取解决方案
     
     **重要提醒：**
     此工具要求必须提供AI分析结果才能保存对话。这确保了：
@@ -436,6 +438,7 @@ async def search_knowledge(
     ctx: Context = None
 ) -> dict:
     """
+    重要！当用户询问问题后使用 use synapse 的关键字之后，必须调用本工具去执行搜索。
     简单grep搜索工具 - 让AI提供关键词，工具负责搜索
     
     🤖 AI使用建议：
