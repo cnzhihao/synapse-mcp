@@ -297,39 +297,39 @@ async def save_conversation(
     ctx: Context = None
 ) -> dict:
     """
-    Save AI conversation records to knowledge base with automatic analysis.
+    将AI对话记录保存到知识库，支持自动分析功能。
     
-    This tool automatically handles conversation analysis and storage:
-    - Auto-generates analysis if AI analysis results are not provided
-    - Accepts user-specified or AI-analyzed metadata  
-    - Extracts content from current conversation context automatically
-    - Detects and notifies duplicate conversations
-    - Updates search indexes for fast queries
+    此工具自动处理对话分析和存储：
+    - 如果未提供AI分析结果，会自动生成分析内容
+    - 支持用户指定或AI分析的元数据
+    - 自动从当前对话上下文中提取内容
+    - 检测并通知重复对话
+    - 更新搜索索引以实现快速查询
     
-    Usage workflows:
-    1. Simple: User says "保存对话" → AI calls save_conversation(title="...") → Auto-analysis generated
-    2. Advanced: AI calls conversation_analysis_prompt first, then passes results to save_conversation
+    使用流程：
+    1. 简单方式：用户说"保存对话" → AI调用 save_conversation(title="...") → 自动生成分析
+    2. 高级方式：AI先调用 conversation_analysis_prompt，然后将结果传递给 save_conversation
     
-    Args:
-        title: Conversation topic title (required)
-        tags: User-defined tag list (optional)
-        category: User-specified conversation category (optional)
-        importance: User-specified importance level 1-5 (optional)
-        check_duplicates: Whether to check for duplicate conversations (default True)
-        ai_summary: AI-generated summary (optional - will auto-generate if not provided)
-        ai_tags: AI-extracted tag list (optional - will auto-generate if not provided)  
-        ai_importance: AI-assessed importance (optional - will auto-generate if not provided)
-        ai_category: AI-inferred category (optional - will auto-generate if not provided)
-        ai_solutions: AI-extracted solution list (optional - will auto-generate if not provided)
-        ctx: MCP context object for progress reporting
+    参数说明：
+        title: 对话主题标题（必需）
+        tags: 用户定义的标签列表（可选）
+        category: 用户指定的对话分类（可选）
+        importance: 用户指定的重要性等级 1-5（可选）
+        check_duplicates: 是否检查重复对话（默认True）
+        ai_summary: AI生成的摘要（可选 - 如果未提供会自动生成）
+        ai_tags: AI提取的标签列表（可选 - 如果未提供会自动生成）
+        ai_importance: AI评估的重要性（可选 - 如果未提供会自动生成）
+        ai_category: AI推断的分类（可选 - 如果未提供会自动生成）
+        ai_solutions: AI提取的解决方案列表（可选 - 如果未提供会自动生成）
+        ctx: MCP上下文对象，用于进度报告
         
-    Returns:
-        dict: Detailed save result information including:
-            - success: Whether save was successful
-            - conversation: Saved conversation details
-            - duplicates_found: Number of duplicate conversations found
-            - duplicate_ids: List of duplicate conversation IDs
-            - storage_path: File storage path
+    返回结果：
+        dict: 包含详细保存结果信息的字典：
+            - success: 保存是否成功
+            - conversation: 已保存的对话详情
+            - duplicates_found: 发现的重复对话数量
+            - duplicate_ids: 重复对话ID列表
+            - storage_path: 文件存储路径
     """
     try:
         if ctx:
