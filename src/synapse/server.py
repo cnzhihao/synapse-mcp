@@ -132,87 +132,8 @@ mcp = FastMCP("synapse-mcp", lifespan=app_lifespan)
 
 # ==================== Internal Analysis Functions ====================
 
-async def _generate_conversation_analysis(title: str, ctx = None) -> dict:
-    """
-    Generate automatic conversation analysis when AI analysis is not provided.
-    
-    This function provides a fallback mechanism to ensure save_conversation
-    can work even when AI forgets to call the conversation_analysis_prompt.
-    
-    Args:
-        title: Conversation title
-        ctx: MCP context for logging
-        
-    Returns:
-        dict: Analysis results with summary, tags, importance, category, solutions
-    """
-    if ctx:
-        await ctx.info("Generating automatic conversation analysis...")
-    
-    # Basic analysis based on title keywords
-    title_lower = title.lower()
-    
-    # Determine category from title keywords
-    category_keywords = {
-        "problem-solving": ["bug", "fix", "error", "issue", "problem", "solve", "debug", "troubleshoot"],
-        "learning": ["learn", "tutorial", "how to", "understand", "explain", "guide", "lesson"],
-        "implementation": ["implement", "create", "build", "develop", "make", "add", "feature"],
-        "code-review": ["review", "refactor", "improve", "optimize", "clean", "quality"],
-        "debugging": ["debug", "trace", "investigate", "diagnose", "crash", "exception"]
-    }
-    
-    category = "general"
-    for cat, keywords in category_keywords.items():
-        if any(keyword in title_lower for keyword in keywords):
-            category = cat
-            break
-    
-    # Extract basic tags from title
-    technical_keywords = [
-        "python", "javascript", "java", "cpp", "c++", "react", "vue", "angular", "nodejs", "node.js",
-        "django", "flask", "fastapi", "spring", "api", "database", "sql", "mongodb", "redis",
-        "docker", "kubernetes", "git", "github", "aws", "azure", "gcp", "linux", "windows",
-        "machine learning", "ml", "ai", "data science", "pandas", "numpy", "tensorflow", "pytorch"
-    ]
-    
-    tags = []
-    for keyword in technical_keywords:
-        if keyword in title_lower:
-            tags.append(keyword.replace(" ", "_"))
-    
-    # Add category as tag if not already present
-    if category != "general" and category not in tags:
-        tags.append(category.replace("-", "_"))
-    
-    # Determine importance based on keywords
-    high_importance_keywords = ["critical", "urgent", "important", "security", "performance", "production"]
-    low_importance_keywords = ["minor", "cosmetic", "simple", "basic"]
-    
-    if any(keyword in title_lower for keyword in high_importance_keywords):
-        importance = 5
-    elif any(keyword in title_lower for keyword in low_importance_keywords):
-        importance = 2
-    else:
-        importance = 3
-    
-    # Generate basic summary
-    summary = f"Discussion about {title}. This conversation was automatically analyzed and categorized as {category}."
-    if tags:
-        summary += f" Related technologies: {', '.join(tags[:3])}."
-    
-    analysis_result = {
-        "summary": summary,
-        "tags": tags[:5],  # Limit to 5 tags
-        "importance": importance,
-        "category": category,
-        "solutions": [],  # Basic analysis doesn't extract solutions
-        "auto_generated": True
-    }
-    
-    if ctx:
-        await ctx.info(f"Auto-analysis completed: category={category}, tags={len(tags)}, importance={importance}")
-    
-    return analysis_result
+# Note: _generate_conversation_analysis function removed
+# All conversations now require proper AI analysis through conversation_analysis_prompt
 
 # ==================== MCP Prompt Templates ====================
 
@@ -222,17 +143,22 @@ def conversation_analysis_prompt(
     focus: str = "comprehensive"
 ) -> str:
     """
-    Conversation analysis prompt template.
+    **必需的对话分析提示词模板**
     
-    Analyzes the current conversation context automatically without requiring
-    explicit content input. The AI will analyze the full conversation history.
+    这是使用 save_conversation 工具前的必需步骤。此提示词指导AI分析当前完整的
+    对话上下文，确保所有技术内容、代码示例和解决方案都被正确提取。
+    
+    **使用步骤：**
+    1. 调用此函数获取分析提示词
+    2. 将提示词提供给AI进行完整对话分析  
+    3. 将AI分析结果传递给 save_conversation 工具
     
     Args:
-        title: Conversation title for the analysis
-        focus: Analysis focus ("comprehensive", "summary", "tags", "solutions")
+        title: 对话标题，用于分析上下文
+        focus: 分析重点 ("comprehensive", "summary", "tags", "solutions")
     
     Returns:
-        str: Formatted analysis prompt for current conversation context
+        str: 格式化的AI分析提示词，用于分析当前完整对话上下文
     """
     base_prompt = f"""Please analyze the current technical conversation and provide structured analysis results.
 
@@ -297,18 +223,26 @@ async def save_conversation(
     ctx: Context = None
 ) -> dict:
     """
-    将AI对话记录保存到知识库，支持自动分析功能。
+    将AI对话记录保存到知识库，确保保存完整对话上下文。
     
-    此工具自动处理对话分析和存储：
-    - 如果未提供AI分析结果，会自动生成分析内容
-    - 支持用户指定或AI分析的元数据
-    - 自动从当前对话上下文中提取内容
-    - 检测并通知重复对话
-    - 更新搜索索引以实现快速查询
+    **必需的使用流程：**
+    1. 首先调用 conversation_analysis_prompt 获取分析模板
+    2. 让AI分析当前完整的对话上下文（所有消息和代码）
+    3. 将AI分析结果传递给此工具保存
     
-    使用流程：
-    1. 简单方式：用户说"保存对话" → AI调用 save_conversation(title="...") → 自动生成分析
-    2. 高级方式：AI先调用 conversation_analysis_prompt，然后将结果传递给 save_conversation
+    **重要提醒：**
+    此工具要求必须提供AI分析结果才能保存对话。这确保了：
+    - 完整的对话上下文被正确捕获和保存
+    - 所有技术细节、代码示例都被包含
+    - 生成准确的摘要、标签和分类
+    - 提取可重用的解决方案
+    
+    **功能特性：**
+    - 保存完整对话上下文和技术细节
+    - AI智能分析：摘要、标签、重要性、分类
+    - 自动检测并提取可重用的解决方案
+    - 重复对话检测和去重
+    - 实时搜索索引更新
     
     参数说明：
         title: 对话主题标题（必需）
@@ -339,21 +273,37 @@ async def save_conversation(
         if not title or not title.strip():
             raise ValueError("Conversation title cannot be empty")
         
-        # Auto-generate analysis if not provided
+        # Require AI analysis - no fallback allowed
         if not ai_summary:
-            if ctx:
-                await ctx.info("AI analysis not provided, auto-generating conversation analysis...")
+            # Get the conversation analysis prompt to show user what they should do
+            analysis_prompt = conversation_analysis_prompt(title, focus="comprehensive")
             
-            # Generate automatic analysis using built-in logic
-            auto_analysis = await _generate_conversation_analysis(title, ctx)
-            ai_summary = auto_analysis.get("summary", f"Conversation about: {title}")
-            ai_tags = auto_analysis.get("tags", [])
-            ai_importance = auto_analysis.get("importance", 3)
-            ai_category = auto_analysis.get("category", "general")
-            ai_solutions = auto_analysis.get("solutions", [])
-            auto_analysis_used = True
-        else:
-            auto_analysis_used = False
+            error_message = f"""AI分析结果是必需的。请按照以下步骤操作：
+
+1. 首先调用 conversation_analysis_prompt 工具：
+   conversation_analysis_prompt(title="{title}", focus="comprehensive")
+
+2. 将返回的提示词给AI，让AI分析当前完整的对话内容
+
+3. 将AI的分析结果传递给 save_conversation 工具：
+   - ai_summary: AI生成的对话摘要
+   - ai_tags: AI提取的技术标签列表  
+   - ai_importance: AI评估的重要性(1-5)
+   - ai_category: AI推断的分类
+   - ai_solutions: AI识别的解决方案列表
+
+这确保保存的是完整的对话上下文，而不仅仅是标题信息。
+
+提示词预览：
+{analysis_prompt[:200]}..."""
+
+            if ctx:
+                await ctx.error("缺少AI分析结果 - 无法保存对话")
+                await ctx.info("请使用 conversation_analysis_prompt 获取分析模板")
+            
+            raise ValueError(error_message)
+        
+        auto_analysis_used = False
         
         if importance is not None and (importance < 1 or importance > 5):
             raise ValueError("Importance level must be between 1-5")
@@ -369,9 +319,20 @@ async def save_conversation(
         if ctx:
             await ctx.info("Processing conversation with AI analysis results...")
         
-        # Create conversation content from AI summary since we no longer require explicit content
-        # The AI has already analyzed the complete conversation context
-        conversation_content = ai_summary + "\n\n[Full conversation content was analyzed by AI system]"
+        # Create conversation content from AI analysis
+        # Since AI analysis is now required, we know the complete conversation was analyzed
+        conversation_content = f"""=== 对话分析摘要 ===
+{ai_summary}
+
+=== 完整对话上下文 ===
+以上摘要是AI对完整对话内容的分析结果。AI已处理了整个对话历史，包括：
+- 技术讨论和问题解决方法
+- 代码示例和实现细节  
+- 问题、回答和解释
+- 最佳实践和建议
+- 任何调试步骤或故障排除
+
+AI分析确保了所有重要的技术内容、上下文信息和解决方案都被正确提取和保存。"""
         
         # 使用SaveConversationTool进行保存
         result = await save_tool.save_conversation(
@@ -404,10 +365,7 @@ async def save_conversation(
             
             await ctx.info(f"对话保存成功: {conversation_info.get('id', 'Unknown')}")
             
-            if auto_analysis_used:
-                await ctx.info(f"使用自动分析生成了摘要和 {len(ai_tags)} 个标签")
-            else:
-                await ctx.info(f"使用AI提供的分析结果，包含 {conversation_info.get('auto_tags_count', 0)} 个标签")
+            await ctx.info(f"使用完整AI分析结果，包含 {conversation_info.get('auto_tags_count', 0)} 个标签")
         
         # 构建返回结果（与其他工具风格保持一致）
         return {
@@ -423,8 +381,8 @@ async def save_conversation(
                 "searchable": True
             },
             "analysis": {
-                "auto_generated": auto_analysis_used,
-                "method": "自动分析" if auto_analysis_used else "AI提供分析",
+                "method": "完整AI分析",
+                "ai_analysis_provided": True,
                 "tags_extracted": conversation_info.get("auto_tags_count", 0),
                 "user_tags_added": conversation_info.get("user_tags_count", 0),
                 "solutions_found": conversation_info.get("solutions_count", 0)
@@ -441,22 +399,29 @@ async def save_conversation(
             }
         }
         
+    except ValueError as e:
+        # For parameter validation errors (like missing AI analysis), re-raise the exception
+        # so that the client gets proper error feedback about incorrect usage
+        if ctx:
+            await ctx.error(f"参数验证失败: {str(e)}")
+        raise
+        
     except Exception as e:
+        # For other errors (like storage/system issues), return error dict to allow handling
         error_msg = str(e)
         if ctx:
             await ctx.error(f"保存对话失败: {error_msg}")
         
         logger.error(f"保存对话失败 - 标题: {title[:50]}..., 错误: {error_msg}", exc_info=True)
         
-        # 返回错误信息而不是抛出异常，让调用方能够处理
         return {
             "success": False,
             "error": error_msg,
             "error_type": type(e).__name__,
             "conversation": None,
             "analysis": {
-                "auto_generated": False,
                 "method": "分析失败",
+                "ai_analysis_provided": False,
                 "tags_extracted": 0,
                 "user_tags_added": 0,
                 "solutions_found": 0

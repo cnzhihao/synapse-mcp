@@ -2,27 +2,64 @@
 
 An intelligent memory and knowledge retrieval server built with Python MCP (Model Context Protocol) that helps AI programming assistants remember and reuse solutions from previous conversations.
 
+## 🔑 核心特点
+
+- **解决方案为中心**: 主要存储和检索的是从对话中提取的解决方案，不是完整对话
+- **简单可靠**: 使用grep文本搜索策略，快速、稳定、易理解
+- **AI引导工作流**: 工具提供结构化数据，AI负责语义理解和应用
+- **分层存储**: 对话摘要和解决方案分开管理，便于维护和查询
+
 ## 🚀 Features
 
 ### Core MCP Tools
 
-**🤖 save-conversation** - 智能对话存储
-- 自动保存当前对话到知识库，支持AI自动分析和标签提取
-- 支持重复对话检测和标签管理  
-- 自动生成摘要和重要性评级
-
-**🔍 search-knowledge** - AI语义搜索  
-- 使用简单grep搜索策略，让AI负责语义理解和关键词生成
-- 建议连续搜索2-3次不同关键词以提高召回率
-- 支持多字段搜索（title/content/tags/all）
-
-**🧠 inject-context** - 智能上下文注入
-- 基于搜索结果进行上下文注入，引导AI应用到问题解决中  
-- 简化处理逻辑，保留关键信息，让AI负责语义理解
+**🤖 save-conversation** - 对话摘要存储
+- 保存AI分析生成的对话摘要、标签和元数据到知识库
+- 如果未提供AI分析，会基于标题关键词自动生成基础分析
+- 支持重复检测和用户自定义标签
+- 存储格式：摘要+元数据，不保存完整对话内容
 
 **💎 extract-solutions** - 解决方案提取
-- 智能识别并提取有价值的代码片段、方法和设计模式
-- 自动质量评估和去重，建立可重用解决方案库
+- 从已保存的对话记录中提取解决方案并单独存储
+- 支持按类型（code/approach/pattern）和质量评分过滤
+- 解决方案去重和质量评估，建立独立的解决方案库
+
+**🔍 search-knowledge** - 文本搜索  
+- 简单grep搜索，在解决方案库中搜索关键词匹配
+- 支持多字段搜索（title/content/tags/all），按时间倒序返回
+- 提供搜索建议，引导AI尝试不同关键词组合
+- 搜索对象：solutions（解决方案），不是完整对话
+
+**🧠 inject-context** - 结果格式化
+- 接收搜索结果并格式化为结构化JSON数据
+- 返回AI应用指导，帮助AI理解如何使用搜索到的解决方案
+- 简单的数据转换工具，不进行复杂的语义处理
+
+### Core MCP Tools
+
+**🤖 save-conversation** - 对话摘要存储
+- 保存AI分析生成的对话摘要、标签和元数据到知识库
+- 如果未提供AI分析，会基于标题关键词自动生成基础分析
+- 支持重复检测和用户自定义标签
+- 存储格式：摘要+元数据，不保存完整对话内容
+
+**💎 extract-solutions** - 解决方案提取
+- 从已保存的对话记录中提取解决方案并单独存储
+- 支持按类型（code/approach/pattern）和质量评分过滤
+- 解决方案去重和质量评估，建立独立的解决方案库
+
+**🔍 search-knowledge** - 文本搜索  
+- 简单grep搜索，在解决方案库中搜索关键词匹配
+- 支持多字段搜索（title/content/tags/all），按时间倒序返回
+- 提供搜索建议，引导AI尝试不同关键词组合
+- 搜索对象：solutions（解决方案），不是完整对话
+
+**🧠 inject-context** - 结果格式化
+- 接收搜索结果并格式化为结构化JSON数据
+- 返回AI应用指导，帮助AI理解如何使用搜索到的解决方案
+- 简单的数据转换工具，不进行复杂的语义处理
+
+
 
 ### 数据管理工具
 
@@ -89,6 +126,21 @@ uv run mcp dev src/synapse/server.py --with pandas --with numpy
 
 ## 🏗 Architecture
 
+### 核心工作流程
+
+```
+用户对话 → save_conversation(保存摘要+标签) → extract_solutions(提取解决方案) 
+                                               ↓
+用户问题 → search_knowledge(grep搜索解决方案) → inject_context(格式化结果)
+```
+
+### 系统设计理念
+
+- **解决方案为中心**：主要操作对象是解决方案（solutions），不是完整对话
+- **简单有效**：使用grep文本搜索，快速可靠，让AI负责语义理解
+- **分层存储**：对话摘要和解决方案分开存储，独立管理
+- **AI引导**：工具提供结构化数据，AI负责智能应用
+
 ### Storage Structure
 ```
 data/
@@ -116,13 +168,13 @@ data/
 {
     "id": "conv_20240115_001",
     "title": "Python异步编程最佳实践",
-    "content": "完整对话内容...",
+    "content": "AI生成的对话摘要...",  # 注意：不保存完整对话内容
     "summary": "AI生成摘要",
     "tags": ["Python", "async", "programming"],
     "category": "problem-solving",
     "importance": 4,
     "created_at": "2024-01-15T10:30:00Z",
-    "solutions": [...]
+    "solutions": [...]  # 包含的解决方案
 }
 ```
 
@@ -141,10 +193,10 @@ data/
 
 ## 🔧 Usage Examples
 
-### Basic Usage Flow
+### 实际使用流程
 
 ```python
-# 1. Save current conversation
+# 1. 保存对话摘要（不是完整对话）
 result = await save_conversation(
     title="Python异步编程问题解决",
     ai_summary="讨论了asyncio错误处理最佳实践",
@@ -152,19 +204,19 @@ result = await save_conversation(
     ai_importance=4
 )
 
-# 2. Search for related solutions  
-search_results = await search_knowledge(
-    query="Python async exception handling",
-    search_in="all"
-)
-
-# 3. Extract solutions from conversations
+# 2. 从对话中提取解决方案（必须先执行）
 solutions = await extract_solutions(
     extract_type="code",
     min_reusability_score=0.5
 )
 
-# 4. Inject relevant context for current problem
+# 3. 在解决方案库中搜索（grep文本匹配）
+search_results = await search_knowledge(
+    query="Python async exception handling",
+    search_in="all"
+)
+
+# 4. 格式化搜索结果为AI可理解的数据
 context = await inject_context(
     current_query="如何在async/await中处理多个异常？",
     search_results=search_results['results']
@@ -195,17 +247,17 @@ print(f"Total solutions: {storage_info['total_solutions']}")
 
 ## ⚡ Performance
 
-- **Search Response**: < 100ms for grep-based searches
-- **Context Injection**: < 100ms for simplified processing  
-- **Storage Efficiency**: < 50KB per conversation record
-- **Search Accuracy**: Relies on AI for semantic understanding and keyword generation
+- **搜索响应**: < 100ms 的grep文本搜索速度
+- **结果格式化**: < 100ms 的简单数据处理  
+- **存储效率**: 每个对话摘要记录 < 50KB
+- **搜索精度**: 依赖AI进行语义理解和关键词生成，工具只负责简单匹配
 
 ## 🔒 Security & Privacy
 
-- **Local Storage**: All data stored locally, no external services
-- **No Cloud Dependencies**: Fully offline capable
-- **Privacy First**: Conversations never leave your system
-- **Access Control**: File system permissions control access
+- **本地存储**: 所有数据本地存储，无外部服务依赖
+- **无云依赖**: 完全离线可用
+- **隐私优先**: 对话摘要不会离开你的系统（注意：不存储完整对话内容）
+- **访问控制**: 文件系统权限控制访问
 
 ## 配置 MCP 客户端
 
@@ -231,12 +283,12 @@ print(f"Total solutions: {storage_info['total_solutions']}")
 对于Mac/Linux系统：
 
 ```bash
-claude mcp add synapse-mcp --scope user -- uv --directory /path/to/synapse-mcp run python3 src/synapse/server.py
+claude mcp add synapse-mcp --scope user -- uv --directory /path/to/synapse-mcp run mcp run src/synapse/server.py
 ```
 
 对于Windows系统：
 ```bash
-claude mcp add synapse-mcp --scope user -- uv --directory E:\\codecourse\\synapse-mcp run python3 src\\synapse\\server.py
+claude mcp add synapse-mcp --scope user -- uv --directory E:\\codecourse\\synapse-mcp run mcp run src\\synapse\\server.py
 ```
 
 替换路径为你的实际项目路径。
