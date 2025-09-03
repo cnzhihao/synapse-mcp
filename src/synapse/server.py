@@ -100,7 +100,7 @@ async def app_lifespan(_: FastMCP):
         # Create tool instances
         save_conversation_tool = SaveConversationTool(storage_paths)
         search_knowledge_tool = SearchKnowledgeTool(storage_paths, file_manager)
-        inject_context_tool = InjectContextTool(storage_paths, file_manager, search_knowledge_tool)
+        inject_context_tool = InjectContextTool()
         extract_solutions_tool = ExtractSolutionsTool(storage_paths)
         
         # Create application context
@@ -416,8 +416,7 @@ async def search_knowledge(
         # 使用简化的SearchKnowledgeTool进行grep搜索
         result = search_tool.search_knowledge(
             query=query.strip(),
-            search_in=search_in,
-            limit=limit
+            search_in=search_in
         )
         
         # 检查搜索结果
@@ -456,41 +455,39 @@ async def search_knowledge(
 @mcp.tool()
 async def inject_context(
     current_query: str,
-    max_items: int = 3,
-    relevance_threshold: float = 0.7,
+    search_results: list,
     include_solutions: bool = True,
     include_conversations: bool = True,
     ctx: Context = None
 ) -> dict:
     """
-    向当前对话注入相关的解决方案上下文
+    向当前对话注入搜索结果上下文，并引导AI应用到问题解决中
     
-    使用智能解决方案注入系统，基于多因子相关性算法从已提取的解决方案中
-    找到最相关的代码片段、方法和模式，为当前对话提供有价值的技术参考。
+    这个工具采用简化策略，直接接收搜索结果并引导AI进行智能应用：
+    - 接收来自search_knowledge的搜索结果
+    - 简单格式化处理，保留关键信息
+    - 返回结构化数据引导AI应用解决方案
+    - 让AI负责语义理解和具体实施
     
-    相关性计算基于以下因素：
-    - 文本相似度（35%）：关键词匹配和内容重叠分析
-    - 标签匹配（25%）：基于技术标签的相似度
-    - 引用计数加成（25%）：基于解决方案使用频率的权重
-    - 可重用性加成（10%）：基于解决方案质量评分
-    - 最近引用加成（5%）：基于最近使用时间的权重
+    推荐使用流程：
+    1. 先调用search_knowledge获取相关内容
+    2. 将搜索结果传入此工具进行上下文注入
+    3. AI根据返回的指导自动应用解决方案
     
     Args:
         current_query: 当前用户的查询或问题（必需）
-        max_items: 最大注入的解决方案数量 (1-10，默认3)
-        relevance_threshold: 相关性阈值 (0.0-1.0，默认0.7)
-        include_solutions: 是否包含解决方案内容（保留兼容性，默认True）
-        include_conversations: 已废弃，保留向后兼容性
+        search_results: 来自search_knowledge的搜索结果列表（必需）
+        include_solutions: 保留向后兼容性（默认True）
+        include_conversations: 保留向后兼容性（默认True）
         ctx: MCP上下文对象
         
     Returns:
-        dict: 包含上下文项、注入摘要和详细统计信息的结果
+        dict: 引导AI进行问题解决应用的结构化数据
         {
-            "context_items": [...],
-            "injection_summary": str,
-            "total_items": int,
+            "content": [{"type": "text", "text": "结构化JSON数据"}],
             "processing_time_ms": float,
-            "search_statistics": {...}
+            "total_items": int,
+            "injection_summary": str
         }
     """
     try:
@@ -501,11 +498,8 @@ async def inject_context(
         if not current_query or not current_query.strip():
             raise ValueError("当前查询不能为空")
         
-        if not isinstance(max_items, int) or max_items < 1 or max_items > 10:
-            raise ValueError("最大注入项数必须在1-10之间")
-        
-        if not isinstance(relevance_threshold, (int, float)) or relevance_threshold < 0.0 or relevance_threshold > 1.0:
-            raise ValueError("相关性阈值必须在0.0-1.0之间")
+        if not isinstance(search_results, list):
+            raise ValueError("search_results 必须是列表类型")
         
         # 获取上下文注入工具实例
         inject_tool = None
@@ -516,17 +510,15 @@ async def inject_context(
             raise RuntimeError("无法获取InjectContextTool实例，请检查服务器配置")
         
         if ctx:
-            await ctx.info("执行智能相关性分析...")
-            if relevance_threshold > 0.8:
-                await ctx.info(f"使用高质量阈值: {relevance_threshold}")
+            await ctx.info(f"处理 {len(search_results)} 个搜索结果...")
         
         # 使用InjectContextTool进行智能上下文注入
-        result = inject_tool.inject_context(
+        result = await inject_tool.inject_context(
             current_query=current_query.strip(),
-            max_items=max_items,
-            relevance_threshold=relevance_threshold,
+            search_results=search_results,
             include_solutions=include_solutions,
-            include_conversations=include_conversations
+            include_conversations=include_conversations,
+            ctx=ctx
         )
         
         # 检查注入结果
@@ -556,27 +548,13 @@ async def inject_context(
             else:
                 await ctx.info(f"未找到符合阈值 {relevance_threshold} 的相关上下文")
         
-        # 确保返回格式与原API兼容，同时提供扩展信息
+        # 返回简化的结果格式
         return {
-            # 基本兼容信息
-            "context_items": result.get("context_items", []),
+            "content": result.get("content", []),
             "injection_summary": result.get("injection_summary", "上下文注入完成"),
             "total_items": context_items_count,
             "query": current_query,
-            "relevance_threshold": relevance_threshold,
-            
-            # 扩展信息
-            "processed_query": result.get("processed_query", current_query),
-            "keywords_extracted": result.get("keywords_extracted", []),
-            "processing_time_ms": round(processing_time, 2),
-            "search_statistics": result.get("search_statistics", {}),
-            "settings": {
-                "max_items": max_items,
-                "include_solutions": include_solutions,
-                "include_conversations": include_conversations
-            },
-            "success": True,
-            "context_engine": "synapse_intelligent_inject_v1.0"
+            "processing_time_ms": round(processing_time, 2)
         }
         
     except Exception as e:
@@ -588,20 +566,12 @@ async def inject_context(
         
         # 返回错误信息而不是抛出异常，让调用方能够处理
         return {
-            "context_items": [],
+            "content": [],
             "injection_summary": f"注入失败: {error_msg}",
             "total_items": 0,
             "query": current_query,
-            "error": error_msg,
-            "error_type": type(e).__name__,
-            "relevance_threshold": relevance_threshold,
-            "settings": {
-                "max_items": max_items,
-                "include_solutions": include_solutions,
-                "include_conversations": include_conversations
-            },
-            "success": False,
-            "context_engine": "synapse_intelligent_inject_v1.0"
+            "processing_time_ms": 0,
+            "error": error_msg
         }
 
 @mcp.tool()

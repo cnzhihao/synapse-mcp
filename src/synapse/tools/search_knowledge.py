@@ -75,8 +75,7 @@ class SearchKnowledgeTool:
     def search_knowledge(
         self,
         query: str,
-        search_in: str = "all",  # "title" | "content" | "tags" | "all"
-        limit: int = 10
+        search_in: str = "all"  # "title" | "content" | "tags" | "all"
     ) -> dict:
         """
         简单grep搜索工具 - 让AI提供关键词，工具负责搜索
@@ -96,7 +95,6 @@ class SearchKnowledgeTool:
         Args:
             query: 搜索关键词（由AI理解用户问题后生成）
             search_in: 搜索范围（title/content/tags/all）
-            limit: 返回结果数量 (1-50)
             
         Returns:
             dict: 搜索结果
@@ -125,8 +123,6 @@ class SearchKnowledgeTool:
             if not query or not query.strip():
                 raise ValueError("搜索查询不能为空")
             
-            if limit < 1 or limit > 50:
-                raise ValueError("limit必须在1-50之间")
                 
             if search_in not in ["title", "content", "tags", "all"]:
                 raise ValueError("search_in必须是 'title', 'content', 'tags', 'all' 之一")
@@ -141,8 +137,8 @@ class SearchKnowledgeTool:
             # 按时间倒序排列，最新的优先
             results.sort(key=lambda x: x.get('created_at', ''), reverse=True)
             
-            # 限制结果数量
-            results = results[:limit]
+            # 限制结果数量为最新100个
+            results = results[:100]
             
             processing_time = (time.time() - start_time) * 1000
             
@@ -201,6 +197,7 @@ class SearchKnowledgeTool:
                         "id": solution.id,
                         "title": solution.description,
                         "snippet": self._generate_snippet(solution, search_terms),
+                        "content": solution.content,  # 添加完整内容
                         "type": solution.type,
                         "language": solution.language,
                         "created_at": solution.to_dict().get("created_at", ""),

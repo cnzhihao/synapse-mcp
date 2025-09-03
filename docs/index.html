@@ -258,13 +258,13 @@
                     </div>
                     <div class="feature-card anim-on-scroll">
                         <div class="feature-icon"><i data-lucide="search-code"></i></div>
-                        <h3 class="text-xl font-bold text-white mb-2">三层智能搜索</h3>
-                        <p class="text-gray-400">通过关键词、标签过滤和全文语义匹配，快速、精准地从海量历史中找到所需信息。</p>
+                        <h3 class="text-xl font-bold text-white mb-2">简单grep搜索</h3>
+                        <p class="text-gray-400">使用简单高效的grep搜索，让AI负责语义理解和关键词生成，响应速度快且精准。</p>
                     </div>
                     <div class="feature-card anim-on-scroll">
                         <div class="feature-icon"><i data-lucide="brain-circuit"></i></div>
                         <h3 class="text-xl font-bold text-white mb-2">智能上下文注入</h3>
-                        <p class="text-gray-400">在新查询时，自动分析意图，从知识库提取相关历史对话注入当前上下文，让 AI 更懂你。</p>
+                        <p class="text-gray-400">基于搜索结果进行上下文注入，引导AI应用到问题解决中，简化处理逻辑，响应速度快。</p>
                     </div>
                     <div class="feature-card anim-on-scroll">
                         <div class="feature-icon"><i data-lucide="recycle"></i></div>
@@ -327,17 +327,18 @@
                                 <div class="tool-icon"><i data-lucide="search"></i></div>
                                 <div>
                                     <h4 class="tool-title">search-knowledge</h4>
-                                    <p class="tool-subtitle">AI语义搜索</p>
+                                    <p class="tool-subtitle">简单grep搜索</p>
                                 </div>
                             </div>
                             <div class="tool-content">
-                                <p class="text-gray-400 mb-4">使用三层智能搜索算法，精准检索相关历史对话和解决方案。</p>
+                                <p class="text-gray-400 mb-4">使用简单grep搜索策略，让AI负责语义理解和关键词生成。建议连续搜索2-3次不同关键词以提高召回率。</p>
                                 <div class="tool-params">
-                                    <h5 class="text-sm font-semibold text-cyan-400 mb-2">搜索层次：</h5>
+                                    <h5 class="text-sm font-semibold text-cyan-400 mb-2">搜索范围：</h5>
                                     <ul class="text-sm text-gray-500 space-y-1">
-                                        <li>🎯 <strong>精确匹配</strong> - 标题和关键词</li>
-                                        <li>🏷️ <strong>标签过滤</strong> - 技术标签分类</li>
-                                        <li>🧠 <strong>语义匹配</strong> - AI理解内容相关性</li>
+                                        <li>📝 <strong>title</strong> - 标题匹配</li>
+                                        <li>📄 <strong>content</strong> - 内容匹配</li>
+                                        <li>🏷️ <strong>tags</strong> - 标签匹配</li>
+                                        <li>🔍 <strong>all</strong> - 全字段搜索</li>
                                     </ul>
                                 </div>
                             </div>
@@ -352,15 +353,14 @@
                                 </div>
                             </div>
                             <div class="tool-content">
-                                <p class="text-gray-400 mb-4">基于多因子相关性算法，自动为当前对话注入最相关的历史上下文。</p>
+                                <p class="text-gray-400 mb-4">基于搜索结果进行上下文注入，引导AI应用到问题解决中。简化处理逻辑，让AI负责语义理解。</p>
                                 <div class="tool-params">
-                                    <h5 class="text-sm font-semibold text-cyan-400 mb-2">相关性因子：</h5>
+                                    <h5 class="text-sm font-semibold text-cyan-400 mb-2">处理流程：</h5>
                                     <ul class="text-sm text-gray-500 space-y-1">
-                                        <li>📝 文本相似度 (40%)</li>
-                                        <li>🏷️ 标签匹配 (25%)</li>
-                                        <li>⏰ 时间新鲜度 (15%)</li>
-                                        <li>⭐ 重要性等级 (15%)</li>
-                                        <li>✨ 质量因子 (5%)</li>
+                                        <li>📥 接收搜索结果</li>
+                                        <li>🔄 简单格式化处理</li>
+                                        <li>🧠 引导AI应用方案</li>
+                                        <li>⚡ 快速响应（< 100ms）</li>
                                     </ul>
                                 </div>
                             </div>
@@ -699,8 +699,8 @@ sequenceDiagram
                                 <h4 class="text-lg font-semibold text-white mb-4">性能指标</h4>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="text-center p-4 bg-gray-900/50 rounded-lg">
-                                        <div class="text-2xl font-bold text-cyan-400">< 200ms</div>
-                                        <div class="text-sm text-gray-400">搜索响应时间</div>
+                                        <div class="text-2xl font-bold text-cyan-400">< 100ms</div>
+                                        <div class="text-sm text-gray-400">grep搜索响应时间</div>
                                     </div>
                                     <div class="text-center p-4 bg-gray-900/50 rounded-lg">
                                         <div class="text-2xl font-bold text-green-400">< 50KB</div>
@@ -711,8 +711,8 @@ sequenceDiagram
                                         <div class="text-sm text-gray-400">对话存储容量</div>
                                     </div>
                                     <div class="text-center p-4 bg-gray-900/50 rounded-lg">
-                                        <div class="text-2xl font-bold text-purple-400">95%+</div>
-                                        <div class="text-sm text-gray-400">搜索准确率</div>
+                                        <div class="text-2xl font-bold text-purple-400">AI智能</div>
+                                        <div class="text-sm text-gray-400">语义理解</div>
                                     </div>
                                 </div>
                             </div>
@@ -747,7 +747,7 @@ sequenceDiagram
                                 </div>
                                 <div>
                                     <h4 class="text-lg font-semibold text-white mb-4">Claude Code CLI 命令</h4>
-                                    <pre class="bg-gray-900 border border-gray-700 rounded-lg p-4 overflow-auto whitespace-pre-wrap break-words text-xs sm:text-sm"><code class="text-gray-300">claude mcp add synapse-mcp --scope user -- uv --directory /path/to/synapse-mcp run mcp run /path/to/synapse-mcp/src/synapse/server.py</code></pre>
+                                    <pre class="bg-gray-900 border border-gray-700 rounded-lg p-4 overflow-auto whitespace-pre-wrap break-words text-xs sm:text-sm"><code class="text-gray-300">claude mcp add synapse-mcp --scope user -- uv --directory /path/to/synapse-mcp run python3 src/synapse/server.py</code></pre>
                                 </div>
                             </div>
                         </div>
@@ -779,7 +779,7 @@ sequenceDiagram
                                     <p class="mb-4">只需三个简单步骤：</p>
                                     <ol class="list-decimal list-inside space-y-2 ml-4">
                                         <li>克隆项目并运行 <code class="bg-gray-800 px-2 py-1 rounded text-cyan-300">uv sync</code></li>
-                                        <li>启动服务器 <code class="bg-gray-800 px-2 py-1 rounded text-cyan-300">uv run mcp run src/synapse/server.py</code></li>
+                                        <li>启动服务器 <code class="bg-gray-800 px-2 py-1 rounded text-cyan-300">uv run python3 src/synapse/server.py</code></li>
                                         <li>在Claude Desktop中配置mcp.json文件</li>
                                     </ol>
                                     <p class="mt-4">详细步骤请参考上方的"快速上手"部分。</p>
@@ -817,13 +817,13 @@ sequenceDiagram
                             </div>
                             <div class="faq-answer hidden" data-answer="performance">
                                 <div class="pt-4 text-gray-400">
-                                    <p class="mb-4">不会！Synapse MCP经过性能优化，确保最小延迟：</p>
+                                    <p class="mb-4">不会！Synapse MCP采用简化设计，确保快速响应：</p>
                                     <ul class="list-disc list-inside space-y-2 ml-4">
-                                        <li>搜索响应时间 &lt; 200ms</li>
+                                        <li>grep搜索响应时间 &lt; 100ms</li>
+                                        <li>简化的上下文注入处理 &lt; 100ms</li>
                                         <li>异步处理，不阻塞主对话流程</li>
-                                        <li>智能缓存机制减少重复计算</li>
-                                        <li>轻量级索引结构，内存占用小</li>
-                                        <li>可配置的相关性阈值，平衡质量和速度</li>
+                                        <li>轻量级JSON存储，内存占用小</li>
+                                        <li>让AI负责语义理解，提高效率</li>
                                     </ul>
                                 </div>
                             </div>
@@ -1042,7 +1042,7 @@ uv sync</code></pre>
                                         <span class="command-badge">稳定</span>
                                     </div>
                                     <div class="code-block-enhanced">
-                                        <pre class="code-content"><code class="language-shell">uv run mcp run src/synapse/server.py</code></pre>
+                                        <pre class="code-content"><code class="language-shell">uv run python3 src/synapse/server.py</code></pre>
                                         <button class="copy-button-inline" onclick="copyCode(this)">
                                             <i data-lucide="copy" style="width: 0.75rem; height: 0.75rem;"></i>
                                         </button>
@@ -1110,9 +1110,8 @@ uv sync</code></pre>
         "--directory",
         "/path/to/your/synapse-mcp",
         "run",
-        "mcp",
-        "run",
-        "/path/to/your/synapse-mcp/src/synapse/server.py"
+        "python3",
+        "src/synapse/server.py"
       ]
     }
   }
